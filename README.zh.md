@@ -29,7 +29,7 @@
 
 ```sh
 npm pack
-dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.2.0.tgz
+dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.3.2.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包层
 ```
 
@@ -38,6 +38,8 @@ dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包�
 
 ### npm
 
+若该包已发布到你的 registry：
+
 ```sh
 dsh plugin --profile <profile> add dsh-whale-tts
 ```
@@ -45,12 +47,12 @@ dsh plugin --profile <profile> add dsh-whale-tts
 ### 本地目录（开发态）
 
 ```sh
-dsh plugin --profile <profile> add "link:/绝对路径/qq-bridge/plugins/dsh-whale-tts"
+dsh plugin --profile <profile> add "link:/绝对路径/dsh-whale-tts"   # 本仓库
 ```
 
 ### CLI 管理的 profile 一键安装
 
-仓库根目录的 `tools/install-whale-tts.ps1` 会：备份 profile → 构建 → `npm pack`
+一键安装脚本在 QQBot 宿主仓库里（不在本插件仓库）；它会：备份 profile → 构建 → `npm pack`
 → `dsh plugin add` → 合并配置行 → `--dump-config` 校验：
 
 ```powershell
@@ -64,7 +66,7 @@ powershell -ExecutionPolicy Bypass -File tools\install-whale-tts.ps1 -Rollback  
 所以 `-Profiles desktop` 时脚本只做备份与配置行合并，包本身要在应用里装：
 
 1. 侧栏 **插件 → 添加插件 → 本地目录**：
-   `E:\DeepSeek Harness\QQBot\qq-bridge\plugins\dsh-whale-tts`
+   `<本仓库路径>`
    （或 `file:` tarball 规格），按提示重启应用；
 2. 或者让应用内的 Agent 通过插件管理器安装 tarball。
 
@@ -93,10 +95,10 @@ powershell -ExecutionPolicy Bypass -File tools\install-whale-tts.ps1 -Rollback  
       sapi:
         enabled: true
     output:
-      dir: 'E:\DeepSeek Harness\QQBot\qq-bridge\audio'
+      dir: 'D:\tts-audio'
     cache:
       enabled: true
-      dir: 'E:\DeepSeek Harness\QQBot\qq-bridge\audio\.cache'
+      dir: 'D:\tts-audio\.cache'
     limits:
       maxChars: 120
 ```
@@ -243,7 +245,7 @@ client half 注册在 DSH **「插件」页**的 `dsh-whale-tts` 包下
 ## 开发
 
 ```sh
-cd qq-bridge/plugins/dsh-whale-tts
+cd dsh-whale-tts
 
 npm ci --ignore-scripts            # 沙箱环境：安装脚本需要 spawn
 npm run build                      # tsc（host）+ rollup（client）

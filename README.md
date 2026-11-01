@@ -38,7 +38,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.2.0.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.3.2.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
@@ -55,12 +55,13 @@ dsh plugin --profile <profile> add dsh-whale-tts
 ### From a local directory (development)
 
 ```sh
-dsh plugin --profile <profile> add "link:/abs/path/qq-bridge/plugins/dsh-whale-tts"
+dsh plugin --profile <profile> add "link:/abs/path/dsh-whale-tts"   # this repository
 ```
 
 ### One-shot installer for CLI-managed profiles
 
-`tools/install-whale-tts.ps1` (in the repository root) backs up the profile,
+The one-shot installer lives in the QQBot host tree (not in this package repository);
+it backs up the profile,
 builds, packs, installs, merges the config row and verifies `--dump-config`:
 
 ```powershell
@@ -75,7 +76,7 @@ the Electron application`), so with `-Profiles desktop` the script only backs it
 up and merges its config row. Install the package itself from the app:
 
 1. Sidebar **Plugins → Add plugin → local directory**:
-   `E:\DeepSeek Harness\QQBot\qq-bridge\plugins\dsh-whale-tts`
+   `<path to this repository>`
    (or a `file:` tarball spec), then restart the app if asked;
 2. Or have an in-app agent install the tarball through the plugin manager.
 
@@ -107,10 +108,10 @@ patch overrides it by id:
       sapi:
         enabled: true
     output:
-      dir: 'E:\DeepSeek Harness\QQBot\qq-bridge\audio'
+      dir: 'D:\tts-audio'
     cache:
       enabled: true
-      dir: 'E:\DeepSeek Harness\QQBot\qq-bridge\audio\.cache'
+      dir: 'D:\tts-audio\.cache'
     limits:
       maxChars: 120
 ```
@@ -125,7 +126,7 @@ patch overrides it by id:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `provider` | `openai-compatible` | provider id used by default |
+| `provider` | `mimo` | provider id used by default (only `mimo` is selectable) |
 | `fallback` | `[sapi]` | providers tried in order after the primary fails |
 | `providers.<id>.enabled` | per provider | master switch |
 | `providers.<id>.baseURL` | per provider | API root |
@@ -341,7 +342,7 @@ dictionaries are bundled).
 ## Development
 
 ```sh
-cd qq-bridge/plugins/dsh-whale-tts
+cd dsh-whale-tts
 
 npm ci --ignore-scripts            # sandboxed environment: scripts need spawn
 npm run build                     # tsc (host) + rollup (client)
