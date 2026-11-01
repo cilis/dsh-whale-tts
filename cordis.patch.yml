@@ -1,0 +1,14 @@
+# dsh-whale-tts 组合包配置层。
+#
+# 行的 `id` 必须等于插件注册的 settings 命名空间（`whale-tts`）：DSH 用 loader entry id
+# 推导设置命名空间，设置卡的 `settings.plugin.item` 也按同一个 key 定位。`name` 是 npm
+# 包名，二者职责不同，不能混为一谈。
+#
+# patch 按 id 覆盖**整行 config、不做深合并**——用户在自己的 profile patch 里覆盖这一行时，
+# 必须重述需要的每一个键（参见 README「配置」一节）。这里只写默认值，其余交给 Config
+# schema 的默认值兜底。
+- insert:
+    - id: whale-tts
+      name: dsh-whale-tts
+      config:
+        provider: mimo

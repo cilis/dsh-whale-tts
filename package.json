@@ -1,0 +1,96 @@
+{
+  "name": "dsh-whale-tts",
+  "version": "0.3.2",
+  "description": "Provider-agnostic text-to-speech tools for DeepSeek Harness agents: local audio files, voice profiles, and a settings card.",
+  "type": "module",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    },
+    "./client": {
+      "types": "./lib/client.d.ts",
+      "default": "./lib/client.js"
+    },
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "cordis.patch.yml",
+    "locale",
+    "icon.svg",
+    "docs",
+    "README.md",
+    "README.zh.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ]
+    }
+  },
+  "engines": {
+    "dsh": ">=0.2.1-rc.4 <0.3.0-0",
+    "node": ">=24.9.0"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5"
+  },
+  "dependencies": {
+    "@deepseek-ai/schemastery": "^3.18.1"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.0.5",
+    "@rollup/plugin-sucrase": "^5.1.0",
+    "@types/node": "^24.10.0",
+    "@types/react": "^18.3.31",
+    "esbuild": "^0.28.2",
+    "esbuild-wasm": "^0.28.2",
+    "rollup": "^4.67.2",
+    "sucrase": "^3.35.1",
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "npm run build:host && npm run build:client",
+    "build:host": "tsc -p tsconfig.json",
+    "build:client": "node build/build-client.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.client.json --noEmit",
+    "test": "node --test --test-isolation=none test/",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:host": "node scripts/host-apply-smoke.mjs",
+    "smoke:client": "node scripts/client-bundle-smoke.mjs",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "dsh-plugin",
+    "dsh-bundle",
+    "tts",
+    "text-to-speech",
+    "speech",
+    "mimo",
+    "minimax",
+    "sapi"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cilis/dsh-whale-tts.git"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/cilis/dsh-whale-tts"
+}
