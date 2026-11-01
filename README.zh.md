@@ -2,6 +2,8 @@
 
 > 这声音是育木的小鲸鱼的。
 
+简短介绍（默认）：[README.md](README.md) · English: [README.en.md](README.en.md)
+
 给 [DeepSeek Harness](https://github.com/deepseek-harness/deepseek-harness) Agent 用的、与厂商无关的**语音合成插件**。
 
 插件只做一件事：**把文本变成本地音频文件并返回路径**。它不播放、不发送、不上传音频——文件怎么用由消费方决定（QQ 桥接、视频流水线、播放器……）。
