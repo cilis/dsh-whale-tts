@@ -9,6 +9,7 @@
 import { RpcClient, type ConnectionLike } from './rpc.js'
 import { TtsCard } from './card.js'
 import { NS, dictionaries } from './i18n.js'
+import { installStyles } from './styles.js'
 
 /** Cordis client plugin name. */
 export const name = 'whale-tts'
@@ -42,6 +43,10 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
   // Hand the client the connection service instance, not the context proxy.
   const rpc = new RpcClient(ctx.connection)
+
+  // The stylesheet lives for the life of this plugin's fiber; the installer is
+  // idempotent and a no-op when there is no DOM (unit tests).
+  ctx.effect(() => installStyles())
 
   // `ctx.effect` is provided by the browser runtime and scopes the registration
   // to this plugin's fiber.

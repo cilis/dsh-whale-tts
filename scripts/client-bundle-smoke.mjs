@@ -55,6 +55,13 @@ check(
 check('bundle never calls window.prompt', !/window\s*\.\s*prompt\s*\(/.test(source))
 check('bundle never calls window.confirm', !/window\s*\.\s*confirm\s*\(/.test(source))
 
+// The card ships its own theme-token stylesheet instead of hardcoded colours.
+check(
+  'bundle injects the card stylesheet',
+  /data-wtts-styles/.test(source) && /wtts-btn-primary/.test(source),
+)
+check('stylesheet uses DSH theme tokens', /--dsw-alias-label-primary/.test(source))
+
 const calls = []
 let slotEntry = null
 const ctx = {

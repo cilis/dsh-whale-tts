@@ -5,8 +5,9 @@
  * channel; it never sees a secret value and never resolves credentials itself.
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import type { CSSProperties, ChangeEvent, ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { RpcClient, RpcError, REMOTE_CODES } from './rpc.js'
+import { CardHeader, EmptyState, FileDropzone, StatusBar, Tabs, WhaleMark } from './ui.js'
 import type {
   AudioPayload,
   Candidate,
@@ -94,37 +95,42 @@ const style: Record<string, CSSProperties> = {
     alignItems: 'center',
     gap: 8,
     flexWrap: 'wrap',
-    minHeight: 28,
+    minHeight: 32,
     marginBottom: 0,
   },
   label: {
-    minWidth: 88,
-    color: 'var(--dsh-text-secondary, #666)',
-    fontSize: 13,
-    lineHeight: '28px',
+    minWidth: 96,
+    color: 'var(--dsw-alias-label-secondary, var(--dsh-text-secondary, #6b7280))',
+    fontSize: 12,
+    lineHeight: '32px',
   },
   actions: { display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
   radioGroup: { display: 'flex', alignItems: 'center', gap: 18, minHeight: 28 },
   radioLabel: { display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' },
-  hint: { color: 'var(--dsh-text-secondary, #666)', fontSize: 12, marginLeft: 96 },
+  hint: {
+    color: 'var(--dsw-alias-label-tertiary, var(--dsh-text-secondary, #6b7280))',
+    fontSize: 12,
+    lineHeight: '18px',
+    marginLeft: 104,
+  },
   input: {
     boxSizing: 'border-box',
-    height: 28,
-    padding: '0 8px',
-    borderRadius: 6,
-    border: '1px solid var(--dsh-border-color, rgba(127,127,127,0.45))',
+    height: 32,
+    padding: '0 10px',
+    borderRadius: 8,
+    border: '0.5px solid var(--dsw-alias-border-l2, var(--dsh-border-color, rgba(127,127,127,0.4)))',
     background: 'transparent',
     color: 'inherit',
     font: 'inherit',
     fontSize: 13,
-    lineHeight: '26px',
+    lineHeight: '32px',
     minWidth: 160,
   },
   textarea: {
     boxSizing: 'border-box',
-    padding: '6px 8px',
-    borderRadius: 6,
-    border: '1px solid var(--dsh-border-color, rgba(127,127,127,0.45))',
+    padding: '8px 10px',
+    borderRadius: 8,
+    border: '0.5px solid var(--dsw-alias-border-l2, var(--dsh-border-color, rgba(127,127,127,0.4)))',
     background: 'transparent',
     color: 'inherit',
     font: 'inherit',
@@ -135,44 +141,44 @@ const style: Record<string, CSSProperties> = {
   },
   button: {
     boxSizing: 'border-box',
-    height: 28,
-    padding: '0 10px',
-    borderRadius: 6,
-    border: '1px solid var(--dsh-border-color, rgba(127,127,127,0.45))',
+    height: 32,
+    padding: '0 12px',
+    borderRadius: 8,
+    border: '0.5px solid var(--dsw-alias-border-l2, var(--dsh-border-color, rgba(127,127,127,0.4)))',
     background: 'transparent',
     color: 'inherit',
     cursor: 'pointer',
     font: 'inherit',
     fontSize: 13,
-    lineHeight: '26px',
+    lineHeight: '30px',
     whiteSpace: 'nowrap',
   },
   primary: {
     boxSizing: 'border-box',
-    height: 28,
+    height: 32,
     padding: '0 12px',
-    borderRadius: 6,
-    border: '1px solid var(--dsh-accent-color, #4f8cff)',
-    background: 'var(--dsh-accent-color, #4f8cff)',
-    color: '#fff',
+    borderRadius: 8,
+    border: '0.5px solid transparent',
+    background: 'var(--dsw-alias-button-primary-fill, var(--dsh-accent-color, #4f8cff))',
+    color: 'var(--dsw-alias-label-primary-foreground, #fff)',
     cursor: 'pointer',
     font: 'inherit',
     fontSize: 13,
-    lineHeight: '26px',
+    lineHeight: '30px',
     whiteSpace: 'nowrap',
   },
   danger: {
     boxSizing: 'border-box',
-    height: 28,
-    padding: '0 10px',
-    borderRadius: 6,
-    border: '1px solid rgba(220,60,60,0.6)',
+    height: 32,
+    padding: '0 12px',
+    borderRadius: 8,
+    border: '0.5px solid color-mix(in srgb, var(--dsw-alias-state-error-primary, #d64545) 35%, transparent)',
     background: 'transparent',
-    color: 'var(--dsh-danger-color, #d64545)',
+    color: 'var(--dsw-alias-state-error-primary, var(--dsh-danger-color, #d64545))',
     cursor: 'pointer',
     font: 'inherit',
     fontSize: 13,
-    lineHeight: '26px',
+    lineHeight: '30px',
     whiteSpace: 'nowrap',
   },
   list: { display: 'flex', flexDirection: 'column', gap: 6 },
@@ -185,13 +191,18 @@ const style: Record<string, CSSProperties> = {
     borderRadius: 6,
     background: 'var(--dsh-fill-color, rgba(127,127,127,0.06))',
   },
-  muted: { color: 'var(--dsh-text-secondary, #666)' },
+  muted: { color: 'var(--dsw-alias-label-secondary, var(--dsh-text-secondary, #6b7280))' },
   tag: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    height: 20,
     fontSize: 11,
-    padding: '2px 8px',
+    padding: '0 8px',
     borderRadius: 999,
-    lineHeight: '16px',
-    background: 'var(--dsh-fill-color, rgba(127,127,127,0.12))',
+    lineHeight: '18px',
+    border: '0.5px solid var(--dsw-alias-border-l1, transparent)',
+    background: 'var(--dsw-alias-bg-layer-2, var(--dsh-fill-color, rgba(127,127,127,0.12)))',
+    color: 'var(--dsw-alias-label-secondary, inherit)',
     whiteSpace: 'nowrap',
   },
   notice: { borderRadius: 6, padding: '4px 10px', lineHeight: '20px' },
@@ -298,6 +309,8 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   // design prompt; used as the provider `user` message whenever the profile is
   // active).
   const [styling, setStyling] = useState<{ id: string; value: string } | null>(null)
+  // Presentational tab; switching never unmounts a form (CSS hides panels).
+  const [tab, setTab] = useState<'voices' | 'interface' | 'backup'>('voices')
   // Backup & restore.
   const [backups, setBackups] = useState<BackupFileInfo[]>([])
   const [backupMode, setBackupMode] = useState<'merge' | 'replace'>('merge')
@@ -494,10 +507,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   }, [call, run])
 
   const uploadSample = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ''
-      if (file === undefined) return
+    async (file: File) => {
       const lower = file.name.toLowerCase()
       if (!lower.endsWith('.mp3') && !lower.endsWith('.wav')) {
         setNotice({ tone: 'error', text: t('sampleHint') })
@@ -708,10 +718,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   )
 
   const importBackupFile = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0]
-      event.target.value = ''
-      if (file === undefined) return
+    async (file: File) => {
       const base64 = await fileToBase64(file)
       await importBackup({ base64 })
     },
@@ -752,48 +759,75 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   const keyClearable = selectedKeyRow?.owned === true
 
   if (rpc === undefined) {
-    return <div style={style.errorNotice}>{t('unavailable')}</div>
+    return <StatusBar tone="error">{t('unavailable')}</StatusBar>
+  }
+
+  if (loading && payload === null) {
+    return (
+      <div className="wtts">
+        {[0, 1].map((card) => (
+          <div key={card} className="wtts-card wtts-skeleton">
+            <div className="wtts-skel-line" />
+            <div className="wtts-skel-line" />
+            <div className="wtts-skel-line" />
+          </div>
+        ))}
+        <span className="wtts-empty">{t('loading')}</span>
+      </div>
+    )
   }
 
   const noticeBox =
-    notice === null ? null : (
-      <div
-        style={
-          notice.tone === 'error'
-            ? style.errorNotice
-            : notice.tone === 'success'
-              ? style.successNotice
-              : style.notice
-        }
-        role={notice.tone === 'error' ? 'alert' : 'status'}
-      >
-        {notice.text}
-      </div>
-    )
+    notice === null ? null : <StatusBar tone={notice.tone}>{notice.text}</StatusBar>
 
   return (
-    <div style={style.card}>
-      <div style={style.row}>
-        <strong>{t('title')}</strong>
-        <span style={style.muted}>{t('currentVoice')}: {payload?.status.activeVoice ?? '—'}</span>
-        {activeProfile === undefined ? null : <span style={style.tag}>{t(`kind${capitalize(activeProfile.kind)}`)}</span>}
-        <span style={{ flex: 1 }} />
-        <button type="button" style={style.button} onClick={() => void refresh()} disabled={loading || busy !== null}>
-          {loading ? t('loading') : t('reload')}
-        </button>
+    <div className="wtts" data-tab={tab}>
+      <div className="wtts-hero">
+        <div className="wtts-hero-mark">
+          <WhaleMark />
+        </div>
+        <div className="wtts-hero-main">
+          <div className="wtts-hero-title">
+            {t('title')}
+            {activeProfile === undefined ? null : (
+              <span className="wtts-tag wtts-tag-brand">{t(`kind${capitalize(activeProfile.kind)}`)}</span>
+            )}
+          </div>
+          <div className="wtts-hero-sub">{t('heroSubtitle')}</div>
+        </div>
+        <div className="wtts-chips">
+          <span className="wtts-chip">{payload?.config.provider ?? '—'}</span>
+          <span className={activeProvider?.keyConfigured === true ? 'wtts-chip wtts-chip-ok' : 'wtts-chip wtts-chip-warn'}>
+            {activeProvider?.keyConfigured === true ? t('keyConfigured') : t('keyMissing')}
+          </span>
+          {activeProfile === undefined ? null : <span className="wtts-chip">{activeProfile.name}</span>}
+          <button type="button" className="wtts-btn wtts-btn-ghost" onClick={() => void refresh()} disabled={loading || busy !== null}>
+            {loading ? t('loading') : t('reload')}
+          </button>
+        </div>
       </div>
       {noticeBox}
-      {payload !== null && !writable ? <div style={style.notice}>{t('readOnly')}</div> : null}
+      {payload !== null && !writable ? <StatusBar tone="info">{t('readOnly')}</StatusBar> : null}
+      <Tabs
+        items={[
+          { id: 'voices', label: t('tabVoices') },
+          { id: 'interface', label: t('tabInterface') },
+          { id: 'backup', label: t('tabBackup') },
+        ]}
+        value={tab}
+        onChange={(id) => setTab(id === 'interface' || id === 'backup' ? id : 'voices')}
+        label={t('tabsLabel')}
+      />
       {audio === null ? null : (
-        <div style={style.section}>
+        <div className="wtts-card wtts-audio">
           <audio controls autoPlay src={audio.url} style={{ width: '100%' }} />
           <div style={style.muted}>{audio.label}</div>
         </div>
       )}
 
       {/* ---- current voice ---- */}
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionCurrent')}</div>
+      <div className="wtts-card" data-tab="voices">
+        <CardHeader title={t('sectionCurrent')} description={t('sectionCurrentDesc')} />
         <div style={style.row}>
           <span style={style.label}>{t('currentVoice')}</span>
           <span>{payload?.status.activeVoice ?? t('providerDefaultVoice')}</span>
@@ -804,15 +838,15 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             onChange={(event) => setDraft((previous) => ({ ...previous, previewText: event.target.value }))}
             onBlur={() => void writeConfig([{ op: 'set', path: ['previewText'], value: draft.previewText }])}
           />
-          <button type="button" style={style.primary} disabled={busy !== null} onClick={() => void previewVoice()}>
+          <button type="button" className="wtts-btn wtts-btn-primary" disabled={busy !== null} onClick={() => void previewVoice()}>
             {busy === 'preview' ? t('previewing') : t('preview')}
           </button>
         </div>
       </div>
 
       {/* ---- synthesis model ---- */}
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionModel')}</div>
+      <div className="wtts-card" data-tab="voices">
+        <CardHeader title={t('sectionModel')} description={t('sectionModelDesc')} />
         <div style={style.radioGroup}>
           {(['preset', 'design', 'clone'] as const).map((mode) => (
             <label key={mode} style={style.radioLabel}>
@@ -922,7 +956,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
               />
               <button
                 type="button"
-                style={style.primary}
+                className="wtts-btn wtts-btn-primary"
                 disabled={busy !== null || !canDesign}
                 onClick={() => void generateCandidates()}
               >
@@ -950,7 +984,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                     >
                       {t('play')}
                     </button>
-                    <button type="button" style={style.primary} disabled={busy !== null} onClick={() => void adoptCandidate(candidate)}>
+                    <button type="button" className="wtts-btn wtts-btn-primary" disabled={busy !== null} onClick={() => void adoptCandidate(candidate)}>
                       {busy === 'adopt' ? t('saving') : t('adopt')}
                     </button>
                   </div>
@@ -965,7 +999,13 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             {canClone ? null : <div style={style.muted}>{t('unsupportedClone')}</div>}
             <div style={style.row}>
               <span style={style.label}>{t('cloneSample')}</span>
-              <input type="file" accept=".mp3,.wav,audio/mpeg,audio/wav" onChange={(event) => void uploadSample(event)} />
+              <FileDropzone
+                accept=".mp3,.wav,audio/mpeg,audio/wav"
+                disabled={busy !== null || !writable}
+                title={t('cloneChooseSample')}
+                hint={t('cloneChooseSampleHint')}
+                onFile={(file) => void uploadSample(file)}
+              />
               {busy === 'upload' ? <span style={style.muted}>{t('uploading')}</span> : null}
             </div>
             <div style={style.muted}>{t('sampleHint')}</div>
@@ -1003,14 +1043,14 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       </div>
 
       {/* ---- voice library ---- */}
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionProfiles')}</div>
+      <div className="wtts-card" data-tab="voices">
+        <CardHeader title={t('sectionProfiles')} description={t('sectionProfilesDesc')} />
         <div style={style.list}>
-          {profiles.length === 0 ? <span style={style.muted}>{t('profilesEmpty')}</span> : null}
+          {profiles.length === 0 ? <EmptyState title={t('profilesEmpty')} hint={t('profilesEmptyHint')} /> : null}
           {profiles.map((profile) => {
             const active = profile.id === payload?.status.activeProfileId
             return (
-              <div key={profile.id} style={style.listRow}>
+              <div key={profile.id} className="wtts-profile" data-active={active ? 'true' : undefined}>
                 {renaming !== null && renaming.id === profile.id ? (
                   <>
                     <input
@@ -1027,7 +1067,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                     />
                     <button
                       type="button"
-                      style={style.primary}
+                      className="wtts-btn wtts-btn-primary"
                       disabled={busy !== null || renaming.value.trim() === ''}
                       onClick={() => void commitRename(profile)}
                     >
@@ -1057,7 +1097,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                     />
                     <button
                       type="button"
-                      style={style.primary}
+                      className="wtts-btn wtts-btn-primary"
                       disabled={busy !== null}
                       onClick={() => void commitStyle(profile)}
                     >
@@ -1124,7 +1164,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                         <span style={style.muted}>{t('deleteConfirmShort')}</span>
                         <button
                           type="button"
-                          style={style.danger}
+                          className="wtts-btn wtts-btn-danger"
                           disabled={busy !== null}
                           onClick={() => void confirmRemove(profile)}
                         >
@@ -1142,7 +1182,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                     ) : (
                       <button
                         type="button"
-                        style={style.danger}
+                        className="wtts-btn wtts-btn-danger"
                         disabled={busy !== null}
                         onClick={() => removeProfile(profile)}
                       >
@@ -1158,8 +1198,8 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       </div>
 
       {/* ---- output ---- */}
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionOutput')}</div>
+      <div className="wtts-card" data-tab="interface">
+        <CardHeader title={t('sectionOutput')} description={t('sectionOutputDesc')} />
         <div style={style.row}>
           <span style={style.label}>{t('outputDir')}</span>
           <input
@@ -1221,8 +1261,8 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       </div>
 
       {/* ---- interface / credentials ---- */}
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionInterface')}</div>
+      <div className="wtts-card" data-tab="interface">
+        <CardHeader title={t('sectionInterface')} description={t('sectionInterfaceDesc')} />
         <div style={style.row}>
           <span style={style.label}>{t('provider')}</span>
           <select
@@ -1314,7 +1354,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
           <div style={style.actions}>
             <button
               type="button"
-              style={style.primary}
+              className="wtts-btn wtts-btn-primary"
               disabled={busy !== null || keyValue.trim() === ''}
               onClick={() => void saveKey()}
             >
@@ -1322,7 +1362,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             </button>
             {keyClearable && confirmClearKey ? (
               <>
-                <button type="button" style={style.danger} disabled={busy !== null} onClick={() => void clearKey()}>
+                <button type="button" className="wtts-btn wtts-btn-danger" disabled={busy !== null} onClick={() => void clearKey()}>
                   {t('clearKeyConfirm')}
                 </button>
                 <button type="button" style={style.button} disabled={busy !== null} onClick={() => setConfirmClearKey(false)}>
@@ -1397,8 +1437,8 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
           )}
         </div>
       </div>
-      <div style={style.section}>
-        <div style={style.sectionTitle}>{t('sectionBackup')}</div>
+      <div className="wtts-card" data-tab="backup">
+        <CardHeader title={t('sectionBackup')} description={t('sectionBackupDesc')} />
         <div style={style.hint}>{t('backupHint')}</div>
         {backupSummary === null ? null : <div style={style.hint}>{backupSummary}</div>}
         <div style={style.row}>
@@ -1443,12 +1483,12 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
         </div>
         <div style={style.row}>
           <span style={style.label}>{t('backupImportFile')}</span>
-          <input
-            type="file"
+          <FileDropzone
             accept=".json,application/json"
-            style={{ ...style.input, paddingTop: 4 }}
             disabled={busy !== null}
-            onChange={(event) => void importBackupFile(event)}
+            title={t('backupChooseFile')}
+            hint={t('backupChooseFileHint')}
+            onFile={(file) => void importBackupFile(file)}
           />
         </div>
         <div style={style.row}>

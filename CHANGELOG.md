@@ -4,6 +4,36 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] - 2026-11-02
+
+### Changed
+
+- Voice clone: the reference-audio picker now uses the same drag-and-drop
+  dropzone as backup import (click or drop a wav/mp3, ≤10 MB; same validation
+  and upload path as before).
+
+## [0.3.4] - 2026-11-02
+
+### Changed
+
+- Backup import: replaced the native `<input type="file">` ("Choose file / no
+  file chosen") with a themed dropzone that shows the action and accepts a
+  `.json` file from the file picker or by drag-and-drop.
+
+## [0.3.3] - 2026-11-02
+
+### Changed
+
+- **Settings card visual refresh** (no behaviour or RPC changes):
+  - styled with DSH theme tokens (`--dsw-alias-*`, `--dsw-radius-*`,
+    `--dsw-focus-ring-color`) so it follows light/dark themes; no more hardcoded
+    grey fallbacks;
+  - hero summary with provider / credential / active-voice chips;
+  - three tabs — Voices, Interface, Backup — instead of one long form;
+  - section cards with titles and one-line descriptions, unified 32px controls,
+    hover/focus/disabled states, skeleton loading and empty states;
+  - responsive single column on narrow widths; tabs support arrow keys.
+
 ## [0.3.2] - 2026-11-01
 
 ### Changed
