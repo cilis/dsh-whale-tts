@@ -40,7 +40,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.0.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.2.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
@@ -339,10 +339,25 @@ contains five sections:
    override, test connection.
 5. **Read aloud** — auto-read new replies (off by default), skip code blocks,
    segment length, playback speed. Every finalized assistant reply also gets a
-   speaker action in its message action row for on-demand play/pause.
+   play/pause action in its message action row for on-demand reading.
 
 The card's language follows the DSH UI language (Chinese and English
 dictionaries are bundled).
+
+## Read aloud
+
+Every finalized assistant reply gets a play/pause action in its message action row:
+
+- Click to read with the **active voice**; click again to pause/resume; starting
+  another reply stops the previous one.
+- Long replies are split at sentence boundaries, synthesized segment by segment
+  with the next segment prefetched; the button reflects preparing/playing/paused.
+- The card's Read aloud section offers auto-read (off by default; only the
+  closing text reply of a turn), skip fenced code blocks, segment length and
+  playback speed.
+- Inline code is read as words (path separators, underscores and hyphens become
+  spaces); fenced code blocks, URLs and snippets over 120 characters are skipped.
+- If the browser blocks autoplay, the button stays in a click-to-play state.
 
 ## Development
 
