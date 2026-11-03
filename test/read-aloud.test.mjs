@@ -67,13 +67,24 @@ test('readAssistantMessage returns null for unknown ids', () => {
   assert.equal(readAssistantMessage([], 'missing'), null)
 })
 
-test('sanitizeForSpeech drops code by default', () => {
+test('sanitizeForSpeech skips fenced code but keeps inline code readable', () => {
   const input = '说明\n```ts\nconst x = 1\n```\n行内 `code` 和 [链接](https://example.com) 结束。'
   const output = sanitizeForSpeech(input)
   assert.equal(output.includes('const x'), false)
-  assert.equal(output.includes('code'), false)
+  assert.equal(output.includes('code'), true)
   assert.equal(output.includes('链接'), true)
   assert.equal(output.includes('https://'), false)
+})
+
+test('inline code is normalized into pronounceable words', () => {
+  const output = sanitizeForSpeech(
+    '新增 `src/core/read-aloud.ts`、`read-aloud/prepare` 和 `ctx.sessions`。',
+  )
+  assert.equal(output.includes('src core read aloud ts'), true)
+  assert.equal(output.includes('read aloud prepare'), true)
+  assert.equal(output.includes('ctx sessions'), true)
+  assert.equal(output.includes('/'), false)
+  assert.equal(output.includes('_'), false)
 })
 
 test('sanitizeForSpeech keeps inline code text when skipCode is false', () => {

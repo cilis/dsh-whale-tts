@@ -99,11 +99,36 @@ function isEvent(value: unknown): value is EventLike {
 }
 
 /**
+ * Make one inline-code token pronounceable.
+ *
+ * Inline code is usually an identifier, path or flag, and dropping it breaks
+ * the sentence ("新增（…）和（…）"). Path/word separators become spaces so TTS
+ * reads words instead of punctuation; URLs and very long snippets are dropped.
+ */
+function inlineCodeToSpeech(raw: string): string {
+  const text = raw.trim()
+  if (text === '' || text.length > 120) return ''
+  if (/^https?:\/\//i.test(text)) return ''
+  return text
+    .replace(/[\\/]+/g, ' ')
+    .replace(/_+/g, ' ')
+    .replace(/-+/g, ' ')
+    .replace(/\./g, (dot: string, offset: number, whole: string) => {
+      const before = whole[offset - 1] ?? ''
+      const after = whole[offset + 1] ?? ''
+      return /\d/.test(before) && /\d/.test(after) ? dot : ' '
+    })
+    .replace(/[`"'{}[\]()<>|,;=+*&^%$#@!?~]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+/**
  * Turn Markdown source into speech-friendly plain text.
  *
- * Code is the only content that is ever dropped wholesale (`skipCode`): a
- * fenced block read character by character is unusable. Everything else keeps
- * its words and loses only the markup.
+ * Fenced code blocks are dropped when `skipCode` is on (reading a code block
+ * character by character is unusable). Inline code stays: it is normalized by
+ * {@link inlineCodeToSpeech}, because dropping it leaves broken sentences.
  */
 export function sanitizeForSpeech(
   text: string,
@@ -113,12 +138,11 @@ export function sanitizeForSpeech(
   let output = text
 
   if (skipCode) {
-    output = output
-      .replace(/```[\s\S]*?```/g, ' ')
-      .replace(/`[^`\n]*`/g, ' ')
+    output = output.replace(/```[\s\S]*?```/g, ' ')
   } else {
-    output = output.replace(/```[a-zA-Z0-9_-]*\n?/g, ' ').replace(/`([^`\n]*)`/g, '$1')
+    output = output.replace(/```[a-zA-Z0-9_-]*\n?/g, ' ')
   }
+  output = output.replace(/`([^`\n]*)`/g, (_match, body: string) => ` ${inlineCodeToSpeech(body)} `)
 
   output = output
     .replace(/!\[([^\]]*)\]\([^)]*\)/g, '$1')

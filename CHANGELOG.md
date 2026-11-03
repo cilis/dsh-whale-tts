@@ -4,6 +4,18 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-11-03
+
+### Changed
+
+- Read-aloud action icon now matches the DSH action-row icon style: a thin
+  outline volume icon (plus outline pause / warning), 16px, no native button
+  box or background.
+- Inline code is no longer dropped from speech. File names, flags and dotted
+  identifiers are normalized into words (`src/core/read-aloud.ts` →
+  "src core read aloud ts", `ctx.sessions` → "ctx sessions"); fenced code
+  blocks are still skipped, and URLs / 120+ character snippets are omitted.
+
 ## [0.4.0] - 2026-11-03
 
 ### Added

@@ -298,7 +298,7 @@ export const CARD_CSS = `
 /* ------------------------------------------------------- read-aloud action */
 
 /* Lives in the message action row, outside the card root, so it references the
-   global `--dsw-*` tokens directly and uses doubled classes to outrank the
+   global --dsw-* tokens directly and uses doubled classes to outrank the
    card's generic button rules without relying on source order. */
 .wtts-read.wtts-read {
   display: inline-flex;

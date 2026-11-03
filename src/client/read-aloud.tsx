@@ -369,6 +369,25 @@ export function ReadAloudAction({
       aria-label={label}
       title={label}
       onClick={onClick}
+      style={{
+        width: 28,
+        height: 28,
+        padding: 0,
+        border: 0,
+        borderRadius: 999,
+        background: 'transparent',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        lineHeight: 1,
+        cursor: 'pointer',
+        color:
+          phase === 'playing'
+            ? 'var(--dsw-alias-brand-primary, #4f8cff)'
+            : phase === 'error'
+              ? 'var(--dsw-alias-state-error-primary, #d64545)'
+              : 'inherit',
+      }}
     >
       {icon}
     </button>
@@ -377,19 +396,24 @@ export function ReadAloudAction({
 
 function SpeakerIcon({ paused }: { readonly paused: boolean }): React.ReactElement {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M4 9.5h3.2L12 5.5v13l-4.8-4H4a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M11 5 6.5 9H3.5v6h3L11 19V5Z" />
       {paused ? (
-        <path d="M15.5 9.5v5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M15.5 9.25a4 4 0 0 1 0 5.5" />
       ) : (
         <>
-          <path d="M15.5 9c.9.8 1.4 1.8 1.4 3s-.5 2.2-1.4 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-          <path d="M18 7c1.5 1.3 2.3 3 2.3 5s-.8 3.7-2.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M15.5 9.25a4 4 0 0 1 0 5.5" />
+          <path d="M18.5 6.75a8 8 0 0 1 0 10.5" />
         </>
       )}
     </svg>
@@ -398,24 +422,38 @@ function SpeakerIcon({ paused }: { readonly paused: boolean }): React.ReactEleme
 
 function PauseIcon(): React.ReactElement {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="7" y="5.5" width="3.4" height="13" rx="1.1" fill="currentColor" />
-      <rect x="13.6" y="5.5" width="3.4" height="13" rx="1.1" fill="currentColor" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <rect x="7.5" y="6" width="3" height="12" rx="1.4" />
+      <rect x="13.5" y="6" width="3" height="12" rx="1.4" />
     </svg>
   )
 }
 
 function ErrorIcon(): React.ReactElement {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 4.8 21 19.5H3L12 4.8Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-      <path d="M12 9.5v4.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="12" cy="16.6" r="0.9" fill="currentColor" />
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M12 5 21 19.5H3L12 5Z" />
+      <path d="M12 9.5v4.2" />
+      <path d="M12 16.8v.1" />
     </svg>
   )
 }
