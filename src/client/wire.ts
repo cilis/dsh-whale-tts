@@ -76,6 +76,7 @@ export interface ConfigSnapshot {
   output: { dir: string; filename: string; format: 'auto' | 'wav' | 'mp3'; overwrite: boolean }
   cache: { enabled: boolean; dir: string; maxAgeDays: number }
   limits: { maxChars: number }
+  readAloud: { auto: boolean; skipCode: boolean; segmentChars: number; rate: number }
   log: { text: boolean }
   activeProfileId: string
   studioMode: 'preset' | 'design' | 'clone'
@@ -137,6 +138,24 @@ export interface AudioPayload {
   mime: string
   bytes: number
   base64: string
+}
+
+/** Read-aloud preferences returned by `read-aloud/config`. */
+export interface ReadAloudConfigPayload {
+  auto: boolean
+  skipCode: boolean
+  segmentChars: number
+  rate: number
+}
+
+/** One prepared assistant message returned by `read-aloud/prepare`. */
+export interface ReadAloudPreparePayload {
+  messageId: string
+  segments: string[]
+  time: number
+  seq: number
+  final: boolean
+  rate: number
 }
 
 /** Result of `samples/upload`. */

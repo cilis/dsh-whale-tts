@@ -8,6 +8,7 @@
  */
 import { RpcClient, type ConnectionLike } from './rpc.js'
 import { TtsCard } from './card.js'
+import { ReadAloudAction } from './read-aloud.js'
 import { NS, dictionaries } from './i18n.js'
 import { installStyles } from './styles.js'
 
@@ -60,6 +61,24 @@ export function apply(ctx: ClientContext): void {
           inject: () => ({ t, rpc }),
         },
         TtsCard,
+      ),
+    ),
+  )
+
+  // Assistant-message action: one speaker button per finalized reply. The
+  // session-scoped slot passes `messageId` as owner props; `inject` adds the
+  // session id plus the shared RPC client/translate function.
+  ctx.effect(() =>
+    ctx.slots.inject('conversation.chat.assistant-actions', () =>
+      ctx.slots.register(
+        {
+          name: 'conversation.chat.assistant-actions',
+          id: 'whale-tts-speak',
+          order: 20,
+          locale: NS,
+          inject: (sessionId: string) => ({ sessionId, t, rpc }),
+        },
+        ReadAloudAction,
       ),
     ),
   )

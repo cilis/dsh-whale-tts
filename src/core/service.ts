@@ -188,6 +188,12 @@ interface BackupConfig {
   readonly activeProfileId: string
   readonly output: { readonly dir: string; readonly format: string }
   readonly limits: { readonly maxChars: number }
+  readonly readAloud?: {
+    readonly auto: boolean
+    readonly skipCode: boolean
+    readonly segmentChars: number
+    readonly rate: number
+  }
 }
 
 /** The on-disk export document. */
@@ -1066,6 +1072,12 @@ export class TtsService {
         activeProfileId: snap.activeProfileId,
         output: { dir: snap.output.dir, format: snap.output.format },
         limits: { maxChars: snap.limits.maxChars },
+        readAloud: {
+          auto: snap.readAloud.auto,
+          skipCode: snap.readAloud.skipCode,
+          segmentChars: snap.readAloud.segmentChars,
+          rate: snap.readAloud.rate,
+        },
       },
       keyRefs: await this.ownedKeys.list(),
       activeProfileId: data.activeProfileId,

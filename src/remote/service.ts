@@ -14,6 +14,7 @@ import { TtsError, isTtsError, type KeyInfo } from '../types.js'
 import type { ConfigSnapshot } from '../config.js'
 import type { ConnectionTestResult, TtsService } from '../core/service.js'
 import type { LoggerLike } from '../types.js'
+import { prepareSpeechSegments, readAssistantMessage } from '../core/read-aloud.js'
 
 /** Wire namespace of the plugin's RPC channel. */
 export const REMOTE_CHANNEL = '/dsh-whale-tts'
@@ -75,10 +76,16 @@ export interface SettingsBridge {
   mutate(ns: string, operations: readonly SettingsPathOp[], expectedRevision?: number): Promise<void>
 }
 
+/** Late-bound session store used only to resolve read-aloud message text. */
+export interface ReadAloudSessions {
+  get(sessionId: string): { snapshotEvents(): readonly unknown[] } | undefined
+}
+
 /** Dependencies of the RPC handler. */
 export interface RpcHandlerOptions {
   readonly service: TtsService
   readonly settings?: SettingsBridge
+  readonly sessions?: ReadAloudSessions
   readonly logger?: LoggerLike
   /** Inject a fresh-abort signal factory for tests. */
   readonly platform?: NodeJS.Platform
@@ -387,6 +394,40 @@ export function createRpcHandler(
         base64: typeof record?.base64 === 'string' ? record.base64 : undefined,
         path: typeof record?.path === 'string' ? record.path : undefined,
       })
+    },
+
+    // ---------------------------------------------------------- read aloud
+    'read-aloud/config': async () => {
+      const snap = service.snapshot()
+      return {
+        auto: snap.readAloud.auto,
+        skipCode: snap.readAloud.skipCode,
+        segmentChars: snap.readAloud.segmentChars,
+        rate: snap.readAloud.rate,
+      }
+    },
+
+    'read-aloud/prepare': async (payload) => {
+      const sessionId = requireString(payload, 'sessionId')
+      const messageId = requireString(payload, 'messageId')
+      const session = options.sessions?.get(sessionId)
+      if (session === undefined) return null
+      const message = readAssistantMessage(session.snapshotEvents(), messageId)
+      if (message === null) return null
+      const snap = service.snapshot()
+      const segments = prepareSpeechSegments(message.text, {
+        skipCode: snap.readAloud.skipCode,
+        maxChars: Math.min(snap.readAloud.segmentChars, snap.limits.maxChars),
+      })
+      if (segments.length === 0) return null
+      return {
+        messageId,
+        segments,
+        time: message.time,
+        seq: message.seq,
+        final: message.final,
+        rate: snap.readAloud.rate,
+      }
     },
 
     // ------------------------------------------------------------- misc

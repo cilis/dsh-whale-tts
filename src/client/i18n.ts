@@ -168,6 +168,25 @@ export const en: Dictionary = {
   sectionInterfaceDesc: 'Provider, credential and connection overrides.',
   sectionBackupDesc: 'Move the whole voice library to another machine or keep a safety copy.',
   profilesEmptyHint: 'Voices created with voice design or cloning appear here.',
+
+  readAloudTitle: 'Read aloud',
+  readAloudDesc: 'Play assistant replies with the active voice. Every reply gets a speaker button; auto mode reads only the closing reply of a turn.',
+  readAloudAuto: 'Auto-read new replies',
+  readAloudAutoHint: 'Start reading once a turn finishes (off by default)',
+  readAloudSkipCode: 'Skip code blocks',
+  readAloudSkipCodeHint: 'Fenced and inline code are not spoken',
+  readAloudSegment: 'Segment length',
+  readAloudSegmentShort: 'Short (400)',
+  readAloudSegmentNormal: 'Normal (600)',
+  readAloudSegmentLong: 'Long (800)',
+  readAloudSegmentHint: 'Characters per synthesized segment',
+  readAloudRate: 'Speed',
+  readAloudHint: 'Speaker under each reply; uses the active voice',
+  speakStart: 'Read aloud',
+  speakPause: 'Pause reading',
+  speakResume: 'Resume reading',
+  speakPreparing: 'Preparing audio…',
+  speakFailed: 'Read aloud failed',
 }
 
 /** Simplified Chinese copy. */
@@ -329,6 +348,25 @@ export const zh: Dictionary = {
   sectionInterfaceDesc: 'Provider、凭据与连接覆盖项。',
   sectionBackupDesc: '把整个音色库搬走，或留一份安全副本。',
   profilesEmptyHint: '用声音设计或克隆创建的音色会出现在这里。',
+
+  readAloudTitle: '朗读',
+  readAloudDesc: '用当前音色把助手回复读出来。每条回复下方有扬声器按钮；自动模式只读一轮结束时的那条回复。',
+  readAloudAuto: '自动朗读新回复',
+  readAloudAutoHint: '一轮结束后自动开始朗读（默认关闭）',
+  readAloudSkipCode: '跳过代码块',
+  readAloudSkipCodeHint: '代码块和行内代码不朗读',
+  readAloudSegment: '分段长度',
+  readAloudSegmentShort: '短（400）',
+  readAloudSegmentNormal: '常规（600）',
+  readAloudSegmentLong: '长（800）',
+  readAloudSegmentHint: '每段合成的字符上限',
+  readAloudRate: '语速',
+  readAloudHint: '每条回复下方有扬声器按钮；朗读使用当前音色',
+  speakStart: '朗读',
+  speakPause: '暂停朗读',
+  speakResume: '继续朗读',
+  speakPreparing: '正在生成语音…',
+  speakFailed: '朗读失败',
 }
 
 /** All dictionaries, keyed by language tag. */

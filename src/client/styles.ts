@@ -295,6 +295,66 @@ export const CARD_CSS = `
   clip-path: inset(50%);
 }
 
+/* ------------------------------------------------------- read-aloud action */
+
+/* Lives in the message action row, outside the card root, so it references the
+   global `--dsw-*` tokens directly and uses doubled classes to outrank the
+   card's generic button rules without relying on source order. */
+.wtts-read.wtts-read {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary, #6b7280);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.wtts-read.wtts-read:hover {
+  background: var(--dsw-alias-interactive-bg-hover, rgba(127, 127, 127, 0.12));
+  color: var(--dsw-alias-label-secondary, #4b5563);
+}
+
+.wtts-read.wtts-read[data-state='preparing'] {
+  color: var(--dsw-alias-label-secondary, #4b5563);
+}
+
+.wtts-read.wtts-read[data-state='playing'] {
+  color: var(--dsw-alias-brand-primary, #4f8cff);
+  background: color-mix(in srgb, var(--dsw-alias-brand-primary, #4f8cff) 14%, transparent);
+}
+
+.wtts-read.wtts-read[data-state='paused'] {
+  color: var(--dsw-alias-label-secondary, #4b5563);
+}
+
+.wtts-read.wtts-read[data-state='error'] {
+  color: var(--dsw-alias-state-error-primary, #d64545);
+}
+
+.wtts-read.wtts-read:focus-visible {
+  outline: 2px solid var(--dsw-focus-ring-color, var(--dsw-alias-brand-primary, #4f8cff));
+  outline-offset: 2px;
+}
+
+.wtts-read-spin {
+  width: 13px;
+  height: 13px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: wtts-read-spin 0.8s linear infinite;
+}
+
+@keyframes wtts-read-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* -------------------------------------------------------------- controls */
 
 .wtts button {

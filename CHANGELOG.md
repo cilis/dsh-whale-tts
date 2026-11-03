@@ -4,6 +4,21 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-11-03
+
+### Added
+
+- **Read aloud** in DSH: every finalized assistant reply gets a speaker action
+  in its message action row. Click to synthesize with the active voice and play;
+  click again to pause/resume; starting another reply stops the previous one.
+- The settings card gained a Read aloud section: auto-read new replies (off by
+  default), skip code blocks, segment length, and playback speed.
+- Host endpoints `read-aloud/config` and `read-aloud/prepare` resolve the
+  assistant text from the live session log, sanitize Markdown, and split it into
+  provider-sized segments. Auto mode only reads the closing reply of a turn.
+- Long replies are synthesized and played segment by segment with one segment
+  prefetched; browser autoplay rejection degrades to a click-to-play button.
+
 ## [0.3.5] - 2026-11-02
 
 ### Changed

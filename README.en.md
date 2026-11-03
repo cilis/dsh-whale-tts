@@ -40,7 +40,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.3.2.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
@@ -323,7 +323,7 @@ first when troubleshooting.
 
 The browser half registers a card on the DSH **Plugins** page under the
 `dsh-whale-tts` package (`plugins.bundle.config`, key = package name). It
-contains four sections:
+contains five sections:
 
 1. **Current voice** — active profile / provider default, preview sentence, preview.
 2. **Synthesis model** — preset / design / clone selector with a parameter area
@@ -337,6 +337,9 @@ contains four sections:
 4. **Output & interface** — output directory, format, cache, max chars,
    provider, credential source (reuse / manual), key entry, key type, BaseURL
    override, test connection.
+5. **Read aloud** — auto-read new replies (off by default), skip code blocks,
+   segment length, playback speed. Every finalized assistant reply also gets a
+   speaker action in its message action row for on-demand play/pause.
 
 The card's language follows the DSH UI language (Chinese and English
 dictionaries are bundled).

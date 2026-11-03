@@ -31,7 +31,7 @@
 
 ```sh
 npm pack
-dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.3.2.tgz
+dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.4.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包层
 ```
 
@@ -231,7 +231,7 @@ providers:
 ## 设置卡
 
 client half 注册在 DSH **「插件」页**的 `dsh-whale-tts` 包下
-（`plugins.bundle.config`，key = 包名）。四块：
+（`plugins.bundle.config`，key = 包名）。五块：
 
 1. **当前音色** —— 激活档案 / provider 默认音色、试听句、试听
 2. **合成模型** —— 预置 / 设计 / 克隆三选一，参数区联动：
@@ -241,6 +241,8 @@ client half 注册在 DSH **「插件」页**的 `dsh-whale-tts` 包下
 3. **音色档案库** —— 播放 / 启用 / 重命名 / 复制 / 删除
 4. **输出 / 接口** —— 输出目录、格式、缓存、单次上限、provider、密钥来源
    （复用 DSH 凭据 / 手动输入）、密钥输入、密钥类型、BaseURL 覆盖、测试连接
+5. **朗读** —— 自动朗读新回复（默认关）、跳过代码块、分段长度、语速；
+   每条助手回复的操作行另有一个扬声器按钮，可随时朗读/暂停
 
 界面文案跟随 DSH 界面语言（内嵌中英词典）。
 

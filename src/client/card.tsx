@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { RpcClient, RpcError, REMOTE_CODES } from './rpc.js'
 import { CardHeader, EmptyState, FileDropzone, StatusBar, Tabs, WhaleMark } from './ui.js'
+import { invalidateReadAloudConfig } from './read-aloud.js'
 import type {
   AudioPayload,
   Candidate,
@@ -48,6 +49,10 @@ interface Draft {
   baseURLOverride: string
   profileName: string
   cloneSampleFile: string
+  readAloudAuto: boolean
+  readAloudSkipCode: boolean
+  readAloudSegmentChars: number
+  readAloudRate: number
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -62,6 +67,10 @@ const EMPTY_DRAFT: Draft = {
   baseURLOverride: '',
   profileName: '',
   cloneSampleFile: '',
+  readAloudAuto: false,
+  readAloudSkipCode: true,
+  readAloudSegmentChars: 600,
+  readAloudRate: 1,
 }
 
 /** Default credential references per provider. */
@@ -257,6 +266,10 @@ function pickDraft(config: ConfigSnapshot): Draft {
     baseURLOverride: config.baseURLOverride ?? '',
     profileName: '',
     cloneSampleFile: '',
+    readAloudAuto: config.readAloud?.auto ?? false,
+    readAloudSkipCode: config.readAloud?.skipCode ?? true,
+    readAloudSegmentChars: config.readAloud?.segmentChars ?? 600,
+    readAloudRate: config.readAloud?.rate ?? 1,
   }
 }
 
@@ -397,6 +410,15 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       }
     },
     [applyConfig, call, payload, refresh, t, writable],
+  )
+
+  /** Persist one read-aloud preference and drop the action cell's config cache. */
+  const writeReadAloud = useCallback(
+    async (path: readonly string[], value: unknown) => {
+      await writeConfig([{ op: 'set', path: ['readAloud', ...path], value } as ConfigOp])
+      invalidateReadAloudConfig()
+    },
+    [writeConfig],
   )
 
   const run = useCallback(
@@ -841,6 +863,80 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
           <button type="button" className="wtts-btn wtts-btn-primary" disabled={busy !== null} onClick={() => void previewVoice()}>
             {busy === 'preview' ? t('previewing') : t('preview')}
           </button>
+        </div>
+      </div>
+
+      {/* ---- read aloud ---- */}
+      <div className="wtts-card" data-tab="voices">
+        <CardHeader title={t('readAloudTitle')} description={t('readAloudDesc')} />
+        <div style={style.row}>
+          <label style={{ ...style.label, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={draft.readAloudAuto}
+              disabled={!writable || busy !== null}
+              onChange={(event) => {
+                const value = event.target.checked
+                setDraft((previous) => ({ ...previous, readAloudAuto: value }))
+                void writeReadAloud(['auto'], value)
+              }}
+            />{' '}
+            {t('readAloudAuto')}
+          </label>
+          <span style={style.hint}>{t('readAloudAutoHint')}</span>
+        </div>
+        <div style={style.row}>
+          <label style={{ ...style.label, cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={draft.readAloudSkipCode}
+              disabled={!writable || busy !== null}
+              onChange={(event) => {
+                const value = event.target.checked
+                setDraft((previous) => ({ ...previous, readAloudSkipCode: value }))
+                void writeReadAloud(['skipCode'], value)
+              }}
+            />{' '}
+            {t('readAloudSkipCode')}
+          </label>
+          <span style={style.hint}>{t('readAloudSkipCodeHint')}</span>
+        </div>
+        <div style={style.row}>
+          <span style={style.label}>{t('readAloudSegment')}</span>
+          <select
+            style={{ ...style.input, minWidth: 120 }}
+            value={draft.readAloudSegmentChars}
+            disabled={!writable || busy !== null}
+            onChange={(event) => {
+              const value = Number(event.target.value)
+              setDraft((previous) => ({ ...previous, readAloudSegmentChars: value }))
+              void writeReadAloud(['segmentChars'], value)
+            }}
+          >
+            <option value={400}>{t('readAloudSegmentShort')}</option>
+            <option value={600}>{t('readAloudSegmentNormal')}</option>
+            <option value={800}>{t('readAloudSegmentLong')}</option>
+          </select>
+          <span style={style.muted}>{t('readAloudSegmentHint')}</span>
+        </div>
+        <div style={style.row}>
+          <span style={style.label}>{t('readAloudRate')}</span>
+          <select
+            style={{ ...style.input, minWidth: 110 }}
+            value={draft.readAloudRate}
+            disabled={!writable || busy !== null}
+            onChange={(event) => {
+              const value = Number(event.target.value)
+              setDraft((previous) => ({ ...previous, readAloudRate: value }))
+              void writeReadAloud(['rate'], value)
+            }}
+          >
+            <option value={0.8}>0.8×</option>
+            <option value={1}>1.0×</option>
+            <option value={1.25}>1.25×</option>
+            <option value={1.5}>1.5×</option>
+          </select>
+          <span style={style.muted}>{t('readAloudHint')}</span>
         </div>
       </div>
 

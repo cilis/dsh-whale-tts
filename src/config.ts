@@ -167,6 +167,17 @@ export interface Config {
     maxChars: Volatile<number>
   }
 
+  readAloud: {
+    /** Read newly finalized assistant replies automatically. */
+    auto: Volatile<boolean>
+    /** Drop fenced/inline code instead of voicing it. */
+    skipCode: Volatile<boolean>
+    /** Target characters per speech segment (capped by limits.maxChars). */
+    segmentChars: Volatile<number>
+    /** Playback rate for read-aloud audio (1 = normal speed). */
+    rate: Volatile<number>
+  }
+
   log: {
     /** Log the text being synthesised. Off by default (privacy). */
     text: Volatile<boolean>
@@ -225,6 +236,13 @@ export const Config = z.object({
     maxChars: volatileSchema(z.number().min(1).max(100_000).step(1).default(2000)),
   }),
 
+  readAloud: z.object({
+    auto: volatileSchema(z.boolean().default(false)),
+    skipCode: volatileSchema(z.boolean().default(true)),
+    segmentChars: volatileSchema(z.number().min(200).max(1800).step(100).default(600)),
+    rate: volatileSchema(z.number().min(0.75).max(1.5).step(0.25).default(1)),
+  }),
+
   log: z.object({
     text: volatileSchema(z.boolean().default(false)),
   }),
@@ -271,6 +289,7 @@ export interface ConfigSnapshot {
   output: { dir: string; filename: string; format: FormatChoice; overwrite: boolean }
   cache: { enabled: boolean; dir: string; maxAgeDays: number }
   limits: { maxChars: number }
+  readAloud: { auto: boolean; skipCode: boolean; segmentChars: number; rate: number }
   log: { text: boolean }
   activeProfileId: string
   studioMode: StudioMode
@@ -304,6 +323,12 @@ export function snapshot(config: Config): ConfigSnapshot {
       maxAgeDays: plain(config.cache.maxAgeDays),
     },
     limits: { maxChars: plain(config.limits.maxChars) },
+    readAloud: {
+      auto: plain(config.readAloud?.auto) ?? false,
+      skipCode: plain(config.readAloud?.skipCode) ?? true,
+      segmentChars: plain(config.readAloud?.segmentChars) ?? 600,
+      rate: plain(config.readAloud?.rate) ?? 1,
+    },
     log: { text: plain(config.log.text) },
     activeProfileId: plain(config.activeProfileId),
     studioMode: plain(config.studioMode),

@@ -16,6 +16,7 @@ import { createStatusTool } from './tools/status.js'
 import {
   REMOTE_CHANNEL,
   createRpcHandler,
+  type ReadAloudSessions,
   type SettingsBridge,
 } from './remote/service.js'
 import type { CredentialBridge } from './credentials.js'
@@ -62,6 +63,26 @@ interface SettingsService {
     )[],
     expectedRevision?: number,
   ): Promise<void>
+}
+
+/** Structural view of the session store used for read-aloud text. */
+interface SessionsService {
+  get(sessionId: string): { snapshotEvents(): readonly unknown[] } | undefined
+}
+
+/**
+ * Late-bound session bridge: the web session store may mount after this plugin,
+ * and a headless profile may not have it at all.
+ */
+function sessionsBridge(ctx: Context): ReadAloudSessions {
+  const service = (): SessionsService | undefined =>
+    ctx.get('sessions') as SessionsService | undefined
+  return {
+    get(sessionId) {
+      const current = service()
+      return current === undefined ? undefined : current.get(sessionId)
+    },
+  }
 }
 
 /** Late-bound credential bridge: the service may appear after this plugin. */
@@ -195,6 +216,7 @@ export function apply(ctx: Context, config: ConfigValue): void {
     const handler = createRpcHandler({
       service,
       settings: settingsBridge(ctx),
+      sessions: sessionsBridge(ctx),
       logger,
     })
     const dispose = connection.rpc.handle(REMOTE_CHANNEL, async (endpoint, payload, signal) => {

@@ -63,7 +63,7 @@ check(
 check('stylesheet uses DSH theme tokens', /--dsw-alias-label-primary/.test(source))
 
 const calls = []
-let slotEntry = null
+const slotEntries = []
 const ctx = {
   slots: {
     inject: (_name, callback) => {
@@ -71,7 +71,7 @@ const ctx = {
       return () => {}
     },
     register: (options) => {
-      slotEntry = options
+      slotEntries.push(options)
       return () => {}
     },
   },
@@ -91,9 +91,22 @@ const ctx = {
 }
 
 mod.apply(ctx)
-check('slot registered under key dsh-whale-tts', slotEntry?.key === 'dsh-whale-tts')
-const face = slotEntry?.inject?.()
+const settingsEntry = slotEntries.find((entry) => entry.name === 'plugins.bundle.config')
+const actionEntry = slotEntries.find(
+  (entry) => entry.name === 'conversation.chat.assistant-actions',
+)
+check('settings card slot registered', settingsEntry?.key === 'dsh-whale-tts')
+check('assistant action slot registered', actionEntry !== undefined)
+check('assistant action id/order', actionEntry?.id === 'whale-tts-speak' && actionEntry?.order === 20)
+const face = settingsEntry?.inject?.()
 check('slot inject exposes rpc.call', typeof face?.rpc?.call === 'function')
+const actionFace = actionEntry?.inject?.('session-test')
+check(
+  'assistant action inject exposes session/rpc/t',
+  actionFace?.sessionId === 'session-test' &&
+    typeof actionFace?.rpc?.call === 'function' &&
+    typeof actionFace?.t === 'function',
+)
 
 if (typeof face?.rpc?.call === 'function') {
   await face.rpc.call('profiles/duplicate', { id: 'p1' })
