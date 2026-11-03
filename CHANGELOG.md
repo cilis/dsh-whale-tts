@@ -4,6 +4,17 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-11-03
+
+### Changed
+
+- The read-aloud action now uses DSH's own action-row icons —
+  `IconPlayOutlineRegular`, `IconPauseOutlineRegular` and
+  `IconWarningOutlineRegular` — resolved from
+  `@deepseek-ai/dsh-client-ui-primitives` through the Module Loader require.
+  Missing/older primitives fall back to the inline outline glyphs, so the slot
+  never crashes.
+
 ## [0.4.1] - 2026-11-03
 
 ### Changed

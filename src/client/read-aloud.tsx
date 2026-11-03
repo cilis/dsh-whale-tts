@@ -6,7 +6,7 @@
  * reuses the settings-card RPC (`preview` + `audio/read`), which in turn uses
  * the active voice profile.
  */
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import type { RpcClient } from './rpc.js'
 import type {
   AudioPayload,
@@ -14,6 +14,11 @@ import type {
   ReadAloudConfigPayload,
   ReadAloudPreparePayload,
 } from './wire.js'
+
+// The Module Loader factory provides `require`; DSH exposes its client
+// primitives through it. The declaration keeps the client type check happy
+// without depending on Node typings.
+declare const require: (id: string) => unknown
 
 /** Structural translate function (the card exports the same shape). */
 type Translate = (key: string, params?: Record<string, string | number>) => string
@@ -354,11 +359,11 @@ export function ReadAloudAction({
     phase === 'preparing' ? (
       <span className="wtts-read-spin" aria-hidden="true" />
     ) : phase === 'playing' ? (
-      <PauseIcon />
+      <ReadAloudIcon kind="pause" />
     ) : phase === 'error' ? (
-      <ErrorIcon />
+      <ReadAloudIcon kind="warning" />
     ) : (
-      <SpeakerIcon paused={phase === 'paused'} />
+      <ReadAloudIcon kind="play" />
     )
 
   return (
@@ -394,7 +399,66 @@ export function ReadAloudAction({
   )
 }
 
-function SpeakerIcon({ paused }: { readonly paused: boolean }): React.ReactElement {
+/** One DSH built-in icon component (props are a subset of its real contract). */
+type BuiltinIcon = React.ComponentType<{ size?: number }>
+
+interface BuiltinIcons {
+  readonly play?: BuiltinIcon
+  readonly pause?: BuiltinIcon
+  readonly warning?: BuiltinIcon
+}
+
+let builtinIconsCache: BuiltinIcons | null = null
+
+/**
+ * Resolve DSH's own action-row icons through the Module Loader require.
+ *
+ * A missing or older primitives module must not break the slot, so failures
+ * fall back to the inline glyphs below. The lookup is cached for the page.
+ */
+function builtinIcons(): BuiltinIcons {
+  if (builtinIconsCache !== null) return builtinIconsCache
+  const result: BuiltinIcons = {}
+  try {
+    const primitives = require('@deepseek-ai/dsh-client-ui-primitives') as
+      | Record<string, unknown>
+      | undefined
+    const pick = (name: string): BuiltinIcon | undefined => {
+      const candidate = primitives?.[name]
+      return typeof candidate === 'function' ||
+        (typeof candidate === 'object' && candidate !== null)
+        ? (candidate as BuiltinIcon)
+        : undefined
+    }
+    Object.assign(result, {
+      play: pick('IconPlayOutlineRegular'),
+      pause: pick('IconPauseOutlineRegular'),
+      warning: pick('IconWarningOutlineRegular'),
+    })
+  } catch {
+    // Headless smoke or an older DSH: use the fallback glyphs.
+  }
+  builtinIconsCache = result
+  return result
+}
+
+/** Action icon: DSH's own play/pause/warning, with an inline fallback. */
+function ReadAloudIcon({
+  kind,
+}: {
+  readonly kind: 'play' | 'pause' | 'warning'
+}): React.ReactElement {
+  const icons = builtinIcons()
+  const Builtin = kind === 'play' ? icons.play : kind === 'pause' ? icons.pause : icons.warning
+  if (Builtin !== undefined) {
+    return React.createElement(Builtin, { size: 16 })
+  }
+  if (kind === 'play') return <PlayGlyph />
+  if (kind === 'pause') return <PauseGlyph />
+  return <WarningGlyph />
+}
+
+function PlayGlyph(): React.ReactElement {
   return (
     <svg
       width="16"
@@ -407,20 +471,12 @@ function SpeakerIcon({ paused }: { readonly paused: boolean }): React.ReactEleme
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M11 5 6.5 9H3.5v6h3L11 19V5Z" />
-      {paused ? (
-        <path d="M15.5 9.25a4 4 0 0 1 0 5.5" />
-      ) : (
-        <>
-          <path d="M15.5 9.25a4 4 0 0 1 0 5.5" />
-          <path d="M18.5 6.75a8 8 0 0 1 0 10.5" />
-        </>
-      )}
+      <path d="M8.5 5.5 19 12 8.5 18.5V5.5Z" />
     </svg>
   )
 }
 
-function PauseIcon(): React.ReactElement {
+function PauseGlyph(): React.ReactElement {
   return (
     <svg
       width="16"
@@ -438,7 +494,7 @@ function PauseIcon(): React.ReactElement {
   )
 }
 
-function ErrorIcon(): React.ReactElement {
+function WarningGlyph(): React.ReactElement {
   return (
     <svg
       width="16"

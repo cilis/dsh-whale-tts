@@ -61,6 +61,10 @@ check(
   /data-wtts-styles/.test(source) && /wtts-btn-primary/.test(source),
 )
 check('stylesheet uses DSH theme tokens', /--dsw-alias-label-primary/.test(source))
+check(
+  'references DSH built-in action icons',
+  /IconPlayOutlineRegular/.test(source) && /IconPauseOutlineRegular/.test(source),
+)
 
 const calls = []
 const slotEntries = []
