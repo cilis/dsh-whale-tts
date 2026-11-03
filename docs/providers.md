@@ -157,3 +157,10 @@ in the built-in map can still be injected by tests through
 4. extend `providers.test.mjs` with a fake-fetch request/response test and the
    error-classification cases;
 5. document it here and in the README provider table.
+
+## Other TTS APIs
+
+A separate survey of APIs not yet wired into this plugin (Qwen TTS, 豆包/Volcengine,
+MiniMax, OpenAI, Azure Speech, ElevenLabs, SiliconFlow, Fish Audio) lives in
+[`tts-apis/`](tts-apis/README.md). Each file has endpoint, auth, request/response
+shape, limits and adapter notes, so a new provider can be implemented from it.
