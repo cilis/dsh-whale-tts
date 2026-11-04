@@ -299,3 +299,5 @@ host half 用 `tsc` 按文件编译到 `lib/`（含 `.d.ts`）；browser half �
 ## 许可证
 
 MIT，见 [LICENSE](./LICENSE)。
+
+[![](https://img.shields.io/badge/powered_by-dsh-4D6BFE?style=flat-square&logo=deepseek&logoColor=white)](https://github.com/deepseek-ai/deepseek-harness)
