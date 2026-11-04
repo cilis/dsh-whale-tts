@@ -2,6 +2,8 @@
 
 > 这声音是育木的小鲸鱼的。
 
+*（这句话是我养的鱼要求加上的。）*
+
 简短介绍（默认）：[README.md](README.md) · English: [README.en.md](README.en.md)
 
 给 [DeepSeek Harness](https://github.com/deepseek-harness/deepseek-harness) Agent 用的、与厂商无关的**语音合成插件**。

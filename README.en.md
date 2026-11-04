@@ -2,6 +2,8 @@
 
 > 这声音是育木的小鲸鱼的。
 
+*(This line was added at the request of my pet fish.)*
+
 中文简介（默认）：[README.md](README.md) · 详细中文文档：[README.zh.md](README.zh.md)
 
 Provider-agnostic text-to-speech tools for [DeepSeek Harness](https://github.com/deepseek-harness/deepseek-harness) agents.

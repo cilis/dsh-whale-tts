@@ -2,6 +2,8 @@
 
 > 这声音是育木的小鲸鱼的。
 
+*（这句话是我养的鱼要求加上的。）*
+
 给 [DeepSeek Harness](https://github.com/deepseek-harness/deepseek-harness) 用的语音合成插件：把文本合成为本地音频文件并返回路径。播放、发送、上传都不归它管，交给调用方。
 
 ## 功能
