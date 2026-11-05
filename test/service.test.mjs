@@ -17,6 +17,8 @@ import { test } from 'node:test'
 
 import { TtsService } from '../lib/core/service.js'
 import { TtsError } from '../lib/types.js'
+import { minimaxAdapter } from '../lib/providers/minimax.js'
+import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
 
 /** Minimal RIFF/WAVE payload (passes the magic-byte check). */
 const WAV = Uint8Array.from([
@@ -27,6 +29,9 @@ const WAV = Uint8Array.from([
   0x10, 0x00, 0x00, 0x00, // 16
   0x01, 0x00, 0x01, 0x00, // PCM, mono
 ])
+
+/** Minimal MP3 payload (ID3 header, passes the magic-byte check). */
+const MP3 = Uint8Array.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 
 /** Fake primary key. */
 const TEST_KEY = 'sk-fake-0123456789abcdef'
@@ -206,6 +211,10 @@ async function setup(t, options = {}) {
     adapters.set(extra.adapter.id, extra.adapter)
     adapterCalls[extra.adapter.id] = extra.calls
   }
+  for (const adapter of options.realAdapters ?? []) {
+    adapters.set(adapter.id, adapter)
+    adapterCalls[adapter.id] = []
+  }
 
   const credentials = options.credentials ?? makeBridge()
   const env = {
@@ -317,6 +326,99 @@ test('synthesize writes into output.dir and returns path, file, format and bytes
   assert.equal(request.style, undefined)
   assert.ok(request.signal instanceof AbortSignal)
   assert.equal(config.apiKeyEnv, 'FAKE_API_KEY')
+})
+
+test('service: siliconflow writes MP3 through the real adapter', async (t) => {
+  const requests = []
+  const fetchImpl = async (url, init) => {
+    requests.push({ url: String(url), init })
+    return new Response(MP3, { status: 200, headers: { 'content-type': 'audio/mpeg' } })
+  }
+  const { service, credentials, tmpHome } = await setup(t, {
+    realAdapters: [siliconflowAdapter],
+    fetch: fetchImpl,
+    config: {
+      provider: 'siliconflow',
+      presetVoiceId: 'FunAudioLLM/CosyVoice2-0.5B:alex',
+      providers: {
+        siliconflow: {
+          enabled: true,
+          baseURL: 'https://api.siliconflow.test/v1',
+          apiKeyEnv: 'SILICONFLOW_API_KEY',
+          model: 'FunAudioLLM/CosyVoice2-0.5B',
+          voice: 'FunAudioLLM/CosyVoice2-0.5B:alex',
+          format: 'mp3',
+          timeoutMs: 5_000,
+          retry: 0,
+        },
+      },
+    },
+  })
+  await credentials.set('SILICONFLOW_API_KEY', TEST_KEY)
+
+  const outcome = await service.synthesize({ text: '硅基流动验证' }, idleSignal())
+
+  assert.equal(outcome.provider, 'siliconflow')
+  assert.equal(outcome.format, 'mp3')
+  assert.equal(outcome.bytes, MP3.length)
+  assert.equal(dirname(outcome.path), join(tmpHome, 'out'))
+  assert.deepEqual([...await readFile(outcome.path)], [...MP3])
+  assert.equal(requests.length, 1)
+  assert.equal(requests[0].url, 'https://api.siliconflow.test/v1/audio/speech')
+  const body = JSON.parse(requests[0].init.body)
+  assert.equal(body.input, '硅基流动验证')
+  assert.equal(body.voice, 'FunAudioLLM/CosyVoice2-0.5B:alex')
+
+  const status = await service.status()
+  assert.equal(status.providers.siliconflow.selectable, true)
+})
+
+test('service: minimax decodes hex audio through the real adapter', async (t) => {
+  const requests = []
+  const fetchImpl = async (url, init) => {
+    requests.push({ url: String(url), init })
+    return new Response(
+      JSON.stringify({
+        data: { audio: Buffer.from(MP3).toString('hex'), status: 2 },
+        extra_info: { format: 'mp3' },
+        base_resp: { status_code: 0, status_msg: 'success' },
+      }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    )
+  }
+  const { service, credentials } = await setup(t, {
+    realAdapters: [minimaxAdapter],
+    fetch: fetchImpl,
+    config: {
+      provider: 'minimax',
+      presetVoiceId: 'male-qn-jingying',
+      providers: {
+        minimax: {
+          enabled: true,
+          baseURL: 'https://api.minimax.test/v1',
+          apiKeyEnv: 'MINIMAX_API_KEY',
+          model: 'speech-2.8-turbo',
+          voice: 'male-qn-jingying',
+          format: 'mp3',
+          timeoutMs: 5_000,
+          retry: 0,
+        },
+      },
+    },
+  })
+  await credentials.set('MINIMAX_API_KEY', TEST_KEY)
+
+  const outcome = await service.synthesize({ text: 'MiniMax 验证' }, idleSignal())
+
+  assert.equal(outcome.provider, 'minimax')
+  assert.equal(outcome.format, 'mp3')
+  assert.deepEqual([...await readFile(outcome.path)], [...MP3])
+  assert.equal(requests.length, 1)
+  assert.equal(requests[0].url, 'https://api.minimax.test/v1/t2a_v2')
+  const body = JSON.parse(requests[0].init.body)
+  assert.equal(body.text, 'MiniMax 验证')
+  assert.equal(body.output_format, 'hex')
+  assert.equal(body.audio_setting.format, 'mp3')
 })
 
 test('synthesize reuses the cache and does not call the adapter twice', async (t) => {
