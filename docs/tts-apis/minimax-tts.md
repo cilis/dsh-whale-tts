@@ -99,12 +99,13 @@ curl --request POST \
 - 音频、字幕文件有时效；需要及时下载。
 - 国内站和国际站域名/账号体系不同，Key 不通用。
 
-## 6. 接入 dsh-whale-tts 的建议
+## 6. 接入 dsh-whale-tts
 
-- 插件里已经有 `minimax` 空桩，补全适配即可；provider id 保持 `minimax`。
-- `synthesize()`：POST → `data.audio` hex 解码 → 返回
+- **0.5.0 已实现非流式 `minimax` provider**：设置卡里可直接选为 primary，
+  Key 引用 `MINIMAX_API_KEY`，默认 `model = speech-2.8-turbo`、
+  `voice = male-qn-jingying`。
+- `synthesize()`：POST `{baseURL}/t2a_v2` → `data.audio` hex 解码 →
   `{ data, format: audio_setting.format, voice: voice_id }`。
 - 文本上限 10,000 字符，但插件现有分段逻辑建议仍按 500–800 字一段，避免
   单次等待过久。
-- 若做流式播放，需要把 SSE 分片边收边喂给播放器；首版可以先非流式。
-- 声音克隆是独立 API（`/v1/voice_clone` 等），需要额外建模流程。
+- 流式播放、声音克隆和设计尚未接入；要做流式需要把 SSE 分片边收边喂给播放器。

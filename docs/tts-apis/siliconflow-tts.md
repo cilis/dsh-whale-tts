@@ -52,13 +52,12 @@ curl https://api.siliconflow.cn/v1/audio/speech \
 - 错误：`400` 参数/文本非法、`401` Key、`429` 限流、`5xx` 服务端。
 - 文本长度和并发按模型/账号套餐限制，控制台可见。
 
-## 5. 接入 dsh-whale-tts 的建议
+## 5. 接入 dsh-whale-tts
 
-- **成本最低**：现有 `openai-compatible` adapter 直接可用，只需要：
-  - `baseURL = https://api.siliconflow.cn/v1`
-  - `model = FunAudioLLM/CosyVoice2-0.5B`
-  - `voice = FunAudioLLM/CosyVoice2-0.5B:alex`
-- 如果只想增加一个「国内可直连的 OpenAI 兼容 provider」，不需要新代码，改
-  patch 配置即可。
+- **0.5.0 已实现为 `siliconflow` provider**：设置卡里可直接选为 primary，
+  默认 `baseURL = https://api.siliconflow.cn/v1`、`model = FunAudioLLM/CosyVoice2-0.5B`、
+  `voice = FunAudioLLM/CosyVoice2-0.5B:alex`；Key 引用 `SILICONFLOW_API_KEY`。
+- 它复用 OpenAI `/audio/speech` 协议，但不发送 `instructions` 字段（SiliconFlow
+  文档没有该字段）。
 - 声音克隆能力取决于具体托管模型（CosyVoice2 支持零样本克隆，但需要通过
-  参考音频/接口传参）；首版建议先做普通合成。
+  参考音频/接口传参）；插件的克隆 UI 尚未接入这条链路。
