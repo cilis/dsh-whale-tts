@@ -20,7 +20,7 @@
 
 | 要求 | 说明 |
 |---|---|
-| DeepSeek Harness `>= 0.2.1-rc.4 < 0.3.0-0` | 安装时检查 `engines.dsh` |
+| DeepSeek Harness `>= 0.2.1-rc.5` | 安装时检查 `engines.dsh` |
 | Node.js `>= 24.9` | DSH 运行时要求 |
 | profile 含 `@deepseek-ai/dsh-base` | 它挂 `@deepseek-ai/dsh-tools`（`ctx.tools`）；内置 profile 都有 |
 | Web profile（设置卡需要） | headless profile 仍可用工具、改 YAML 配置 |

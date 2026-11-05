@@ -4,6 +4,14 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-11-05
+
+### Changed
+
+- DSH compatibility is now `>= 0.2.1-rc.5` (the current harness release) with no
+  upper cap; earlier `>= 0.2.1-rc.4 < 0.3.0-0` range removed.
+- Listed in the awesome-dsh-plugin directory under `voice`.
+
 ## [0.4.2] - 2026-11-03
 
 ### Changed
