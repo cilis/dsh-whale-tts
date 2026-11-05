@@ -20,7 +20,7 @@ wiring it into this plugin.
 | [OpenAI TTS](openai-tts.md) | `api.openai.com/v1/audio/speech` | `Authorization: Bearer` | binary audio / SSE events | SSE (`stream_format=sse`) | No cloning; voice presets + `instructions` | Already supported through `openai-compatible` |
 | [Azure Speech](azure-speech.md) | `{region}.tts.speech.microsoft.com/cognitiveservices/v1` | subscription key or 10-min bearer token | binary audio | SDK streaming; REST is one-shot | Custom Neural Voice (separate) | Medium: SSML body, not JSON |
 | [ElevenLabs](elevenlabs-tts.md) | `api.elevenlabs.io/v1/text-to-speech/{voice_id}` | `xi-api-key` | binary audio | `/stream` endpoint | Instant/professional voice cloning | Medium: simple REST, but English-first and paid |
-| [SiliconFlow](siliconflow-tts.md) | `api.siliconflow.cn/v1/audio/speech` | `Authorization: Bearer` | binary audio | OpenAI-style SSE | Depends on the hosted model | Lowest: OpenAI-compatible |
+| [SiliconFlow](siliconflow-tts.md) | `api.siliconflow.cn/v1/audio/speech` | `Authorization: Bearer` | binary audio | OpenAI-style SSE | Depends on the hosted model | Wired as `siliconflow` provider |
 | [Fish Audio](fish-audio.md) | `api.fish.audio/v1/tts` | `Authorization: Bearer` | binary audio | No (chunked response) | Voice-model cloning (`reference_id`) | Low: simple REST |
 
 ## Recommendation
