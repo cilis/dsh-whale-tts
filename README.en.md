@@ -27,7 +27,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 | Requirement | Notes |
 |---|---|
-| DeepSeek Harness `>= 0.2.1-rc.5` | `engines.dsh` is enforced at install time |
+| DeepSeek Harness `>= 0.2.1-rc.4 < 0.3.0-0` | `engines.dsh` is enforced at install time |
 | Node.js `>= 24.9` | DSH runtime requirement |
 | A profile that mounts `@deepseek-ai/dsh-base` | provides `ctx.tools`; all bundled profiles include it |
 | A Web profile for the settings card | the host half works headless without it |
@@ -42,7 +42,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.2.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.4.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
