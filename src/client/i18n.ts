@@ -92,7 +92,7 @@ export const en: Dictionary = {
   sectionInterface: 'Interface',
   provider: 'Provider',
   providerLimited:
-    'Only MiMo is selectable for now ({hidden} other providers are not available yet; offline SAPI still works as a fallback).',
+    'Only implemented providers are selectable; {hidden} other providers are hidden (offline SAPI still works as a fallback).',
   providerUnavailable: 'not available yet',
   keySource: 'Credential source',
   keyReuse: 'Reuse a DSH credential',
@@ -272,7 +272,7 @@ export const zh: Dictionary = {
   sectionInterface: '接口',
   provider: 'Provider',
   providerLimited:
-    '目前仅 MiMo 可选（其余 {hidden} 个 provider 暂未开放；离线 SAPI 仍可作为回退）。',
+    '目前只有已实现的 provider 可选；另有 {hidden} 个暂未开放（离线 SAPI 仍可作为回退）。',
   providerUnavailable: '暂不可用',
   keySource: '密钥来源',
   keyReuse: '复用 DSH 已配置凭据',

@@ -40,7 +40,6 @@ own — retries and fallback live in `src/core/chain.ts`.
 | caller aborted | `aborted` | no | no |
 | input validation inside an adapter | `validation` | no | no |
 | platform mismatch (SAPI on non-Windows) | `platform` | no | yes |
-| stub provider | `not-implemented` | no | yes |
 
 Messages never contain the API key or the synthesised text; provider echo is
 redacted before it leaves the host.
@@ -137,12 +136,46 @@ Windows ships `System.Speech`; the package bundles `scripts/sapi.ps1`.
 - The script sets the output to 16 kHz / 16-bit / mono WAV; a missing voice name
   falls back to the system default and writes a warning to stderr.
 
-## minimax (stub)
+## siliconflow
 
-`capabilities.speech = true`, formats `['mp3']`, key required — but
-`synthesize()` throws `TtsError('not-implemented')`. The configuration block and
-the adapter registration exist so enabling it later is a self-contained change
-(request shape is documented in the design documents).
+```
+POST {baseURL}/audio/speech
+Authorization: Bearer <key>
+Content-Type: application/json
+
+{
+  "model": "FunAudioLLM/CosyVoice2-0.5B",
+  "voice": "FunAudioLLM/CosyVoice2-0.5B:alex",
+  "input": "<text>",
+  "response_format": "mp3"
+}
+```
+
+SiliconFlow exposes the OpenAI `/audio/speech` shape, so this adapter delegates
+to the OpenAI-compatible implementation with its own defaults and voice
+catalogue. `instructions` is deliberately not sent; SiliconFlow does not
+document that field.
+
+## minimax
+
+```
+POST {baseURL}/t2a_v2
+Authorization: Bearer <key>
+Content-Type: application/json
+
+{
+  "model": "speech-2.8-turbo",
+  "text": "<text>",
+  "stream": false,
+  "voice_setting": { "voice_id": "<voice>", "speed": 1, "vol": 1, "pitch": 0 },
+  "audio_setting": { "sample_rate": 32000, "bitrate": 128000, "format": "mp3", "channel": 1 },
+  "output_format": "hex"
+}
+```
+
+Response: `{ data: { audio: "<hex>" }, extra_info: ..., base_resp: { status_code, status_msg } }`.
+`base_resp.status_code !== 0` is a provider failure; `data.audio` is hex, not
+base64. Only the non-streaming path is implemented in this release.
 
 ## Writing another provider
 
@@ -161,6 +194,6 @@ in the built-in map can still be injected by tests through
 ## Other TTS APIs
 
 A separate survey of APIs not yet wired into this plugin (Qwen TTS, 豆包/Volcengine,
-MiniMax, OpenAI, Azure Speech, ElevenLabs, SiliconFlow, Fish Audio) lives in
+Azure Speech, ElevenLabs, Fish Audio) lives in
 [`tts-apis/`](tts-apis/README.md). Each file has endpoint, auth, request/response
 shape, limits and adapter notes, so a new provider can be implemented from it.

@@ -14,6 +14,7 @@ import { openaiAdapter } from '../lib/providers/openai.js'
 import { mimoAdapter } from '../lib/providers/mimo.js'
 import { sapiAdapter, buildSapiInvocation } from '../lib/providers/sapi.js'
 import { minimaxAdapter } from '../lib/providers/minimax.js'
+import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
 import {
   BUILTIN_ADAPTERS,
   BUILTIN_PROVIDER_DEFAULTS,
@@ -85,6 +86,11 @@ function mp3Bytes() {
   const bytes = new Uint8Array(24)
   bytes.set([0x49, 0x44, 0x33], 0) // "ID3"
   return bytes
+}
+
+/** The same MP3 payload as the hex string MiniMax returns. */
+function mp3Hex() {
+  return Buffer.from(mp3Bytes()).toString('hex')
 }
 
 /** Build a JSON response for a fake fetch. */
@@ -163,9 +169,9 @@ async function expectTtsError(promise, expected) {
 // Registry alignment
 // ---------------------------------------------------------------------------
 
-test('registry: built-in adapters and defaults line up with the four ids', () => {
-  const ids = ['openai-compatible', 'mimo', 'minimax', 'sapi']
-  assert.equal(BUILTIN_ADAPTERS.size, 4)
+test('registry: built-in adapters and defaults line up with the five ids', () => {
+  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'sapi']
+  assert.equal(BUILTIN_ADAPTERS.size, 5)
   for (const id of ids) {
     assert.ok(BUILTIN_ADAPTERS.has(id), `missing adapter ${id}`)
     assert.ok(BUILTIN_PROVIDER_DEFAULTS[id], `missing defaults for ${id}`)
@@ -174,6 +180,7 @@ test('registry: built-in adapters and defaults line up with the four ids', () =>
   assert.equal(getAdapter('openai-compatible'), openaiAdapter)
   assert.equal(getAdapter('mimo'), mimoAdapter)
   assert.equal(getAdapter('minimax'), minimaxAdapter)
+  assert.equal(getAdapter('siliconflow'), siliconflowAdapter)
   assert.equal(getAdapter('sapi'), sapiAdapter)
 
   // The merged provider config keeps adapter defaults for omitted keys.
@@ -257,13 +264,25 @@ test('capabilities: sapi is Windows-only and needs no key', () => {
   assert.equal(sapiAdapter.capabilities.voiceClone, false)
 })
 
-test('capabilities: minimax keeps MP3 and a key requirement', () => {
+test('capabilities: minimax supports mp3/wav and keeps a key requirement', () => {
   assert.equal(minimaxAdapter.id, 'minimax')
   assert.equal(minimaxAdapter.capabilities.speech, true)
-  assert.deepEqual([...minimaxAdapter.capabilities.formats], ['mp3'])
+  assert.deepEqual([...minimaxAdapter.capabilities.formats], ['mp3', 'wav'])
   assert.equal(minimaxAdapter.capabilities.requiresKey, true)
   assert.equal(minimaxAdapter.capabilities.voiceDesign, false)
   assert.equal(minimaxAdapter.capabilities.voiceClone, false)
+})
+
+test('capabilities: siliconflow exposes CosyVoice voices over OpenAI protocol', () => {
+  assert.equal(siliconflowAdapter.id, 'siliconflow')
+  assert.equal(siliconflowAdapter.capabilities.speech, true)
+  assert.deepEqual([...siliconflowAdapter.capabilities.formats], ['mp3', 'wav'])
+  assert.equal(siliconflowAdapter.capabilities.requiresKey, true)
+  assert.equal(siliconflowAdapter.capabilities.voiceDesign, false)
+  assert.equal(siliconflowAdapter.capabilities.voiceClone, false)
+  const ids = siliconflowAdapter.capabilities.voices.map((voice) => voice.id)
+  assert.ok(ids.includes('FunAudioLLM/CosyVoice2-0.5B:alex'))
+  assert.ok(ids.includes('FunAudioLLM/CosyVoice2-0.5B:anna'))
 })
 
 // ---------------------------------------------------------------------------
@@ -964,19 +983,141 @@ test('sapi: non-win32 platform is rejected before touching the file system', asy
 // minimax
 // ---------------------------------------------------------------------------
 
-test('minimax: synthesize throws not-implemented', async () => {
+test('minimax: posts the t2a_v2 request and decodes hex audio', async () => {
+  const { calls, fetchImpl } = makeFetch(() =>
+    jsonResponse({
+      data: { audio: mp3Hex(), status: 2 },
+      extra_info: { audio_length: 1000, format: 'mp3' },
+      base_resp: { status_code: 0, status_msg: 'success' },
+    }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl })
+
+  const result = await minimaxAdapter.synthesize(
+    { text: 'hello minimax', signal: idleSignal() },
+    {
+      baseURL: 'https://api.minimax.test/v1/',
+      apiKeyEnv: 'MINIMAX_API_KEY',
+      model: 'speech-2.8-hd',
+      voice: 'female-shaonv',
+      format: 'mp3',
+      timeoutMs: 5_000,
+    },
+    runtime,
+  )
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://api.minimax.test/v1/t2a_v2')
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TEST_KEY}`)
+  const body = JSON.parse(calls[0].init.body)
+  assert.equal(body.model, 'speech-2.8-hd')
+  assert.equal(body.text, 'hello minimax')
+  assert.equal(body.stream, false)
+  assert.deepEqual(body.voice_setting, { voice_id: 'female-shaonv', speed: 1, vol: 1, pitch: 0 })
+  assert.deepEqual(body.audio_setting, {
+    sample_rate: 32_000,
+    bitrate: 128_000,
+    format: 'mp3',
+    channel: 1,
+  })
+  assert.equal(body.output_format, 'hex')
+  assert.deepEqual([...result.data], [...mp3Bytes()])
+  assert.equal(result.format, 'mp3')
+  assert.equal(result.voice, 'female-shaonv')
+})
+
+test('minimax: missing credential is auth and never calls fetch', async () => {
+  const { calls, fetchImpl } = makeFetch(() => jsonResponse({ data: { audio: mp3Hex() } }))
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => undefined })
+
   await expectTtsError(
     minimaxAdapter.synthesize(
-      { text: '你好', signal: idleSignal() },
-      { format: 'mp3' },
-      makeRuntime(),
+      { text: 'no key', signal: idleSignal() },
+      { baseURL: 'https://api.minimax.test/v1', apiKeyEnv: 'MINIMAX_API_KEY' },
+      runtime,
     ),
+    { kind: 'auth', provider: 'minimax', retryable: false },
+  )
+  assert.equal(calls.length, 0)
+})
+
+test('minimax: base_resp 1004 maps to auth, 1002 to rate-limit', async () => {
+  for (const [code, kind, retryable] of [
+    [1004, 'auth', false],
+    [1002, 'rate-limit', true],
+  ]) {
+    const { fetchImpl } = makeFetch(() =>
+      jsonResponse({
+        data: { audio: '' },
+        base_resp: { status_code: code, status_msg: 'provider says no' },
+      }),
+    )
+    await expectTtsError(
+      minimaxAdapter.synthesize(
+        { text: 'error case', signal: idleSignal() },
+        { baseURL: 'https://api.minimax.test/v1', apiKeyEnv: 'MINIMAX_API_KEY' },
+        makeRuntime({ fetch: fetchImpl }),
+      ),
+      { kind, provider: 'minimax', retryable },
+    )
+  }
+})
+
+test('minimax: invalid hex is a provider error', async () => {
+  const { fetchImpl } = makeFetch(() =>
+    jsonResponse({
+      data: { audio: 'not-hex' },
+      base_resp: { status_code: 0, status_msg: 'success' },
+    }),
+  )
+  await expectTtsError(
+    minimaxAdapter.synthesize(
+      { text: 'bad audio', signal: idleSignal() },
+      { baseURL: 'https://api.minimax.test/v1', apiKeyEnv: 'MINIMAX_API_KEY' },
+      makeRuntime({ fetch: fetchImpl }),
+    ),
+    { kind: 'provider', provider: 'minimax', retryable: false },
+  )
+})
+
+test('siliconflow: reuses the OpenAI speech protocol with its own defaults', async () => {
+  const { calls, fetchImpl } = makeFetch(() => audioResponse(mp3Bytes()))
+  const runtime = makeRuntime({ fetch: fetchImpl })
+
+  const result = await siliconflowAdapter.synthesize(
+    { text: 'hello siliconflow', signal: idleSignal() },
     {
-      kind: 'not-implemented',
-      provider: 'minimax',
-      retryable: false,
-      messageIncludes: 'not implemented',
+      baseURL: 'https://api.siliconflow.test/v1',
+      apiKeyEnv: 'SILICONFLOW_API_KEY',
+      model: 'FunAudioLLM/CosyVoice2-0.5B',
+      voice: 'FunAudioLLM/CosyVoice2-0.5B:alex',
+      format: 'mp3',
+      timeoutMs: 5_000,
     },
+    runtime,
+  )
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://api.siliconflow.test/v1/audio/speech')
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TEST_KEY}`)
+  const body = JSON.parse(calls[0].init.body)
+  assert.equal(body.model, 'FunAudioLLM/CosyVoice2-0.5B')
+  assert.equal(body.voice, 'FunAudioLLM/CosyVoice2-0.5B:alex')
+  assert.equal(body.input, 'hello siliconflow')
+  assert.equal(body.response_format, 'mp3')
+  assert.deepEqual([...result.data], [...mp3Bytes()])
+  assert.equal(result.format, 'mp3')
+})
+
+test('siliconflow: errors are labelled siliconflow, not openai-compatible', async () => {
+  const { fetchImpl } = makeFetch(() => jsonResponse({ error: { message: 'bad key' } }, 401))
+  await expectTtsError(
+    siliconflowAdapter.synthesize(
+      { text: 'auth', signal: idleSignal() },
+      { baseURL: 'https://api.siliconflow.test/v1', apiKeyEnv: 'SILICONFLOW_API_KEY' },
+      makeRuntime({ fetch: fetchImpl }),
+    ),
+    { kind: 'auth', provider: 'siliconflow', retryable: false },
   )
 })
 
@@ -984,19 +1125,21 @@ test('minimax: synthesize throws not-implemented', async () => {
 /* selectable providers                                                       */
 /* -------------------------------------------------------------------------- */
 
-test('only mimo is selectable as the primary provider', () => {
+test('mimo, siliconflow and minimax are selectable as primary providers', () => {
   assert.equal(isProviderSelectable('mimo'), true)
+  assert.equal(isProviderSelectable('siliconflow'), true)
+  assert.equal(isProviderSelectable('minimax'), true)
   assert.equal(isProviderSelectable('openai-compatible'), false)
-  assert.equal(isProviderSelectable('minimax'), false)
   // SAPI stays usable as an internal fallback, but not as a primary choice.
   assert.equal(isProviderSelectable('sapi'), false)
   // Unknown ids (custom adapters used by tests / third parties) stay allowed.
   assert.equal(isProviderSelectable('fake'), true)
 })
 
-test('DEFAULT_PROVIDERS disables the unfinished providers', () => {
+test('DEFAULT_PROVIDERS enables implemented providers and keeps the rest off', () => {
   assert.equal(DEFAULT_PROVIDERS['mimo'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['siliconflow'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['openai-compatible'].enabled, false)
-  assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, false)
   assert.equal(DEFAULT_PROVIDERS['sapi'].enabled, true)
 })

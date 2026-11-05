@@ -7,6 +7,7 @@ import { openaiAdapter } from './openai.js'
 import { mimoAdapter } from './mimo.js'
 import { sapiAdapter } from './sapi.js'
 import { minimaxAdapter } from './minimax.js'
+import { siliconflowAdapter } from './siliconflow.js'
 
 /**
  * Default provider blocks. Duplicated from `config.ts` defaults on purpose:
@@ -36,13 +37,23 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
     designOptimizeText: true,
   },
   minimax: {
-    enabled: false,
+    enabled: true,
     baseURL: 'https://api.minimax.cn/v1',
     apiKeyEnv: 'MINIMAX_API_KEY',
     model: 'speech-2.8-turbo',
     designModel: '',
     cloneModel: '',
     voice: 'male-qn-jingying',
+    format: 'mp3',
+  },
+  siliconflow: {
+    enabled: true,
+    baseURL: 'https://api.siliconflow.cn/v1',
+    apiKeyEnv: 'SILICONFLOW_API_KEY',
+    model: 'FunAudioLLM/CosyVoice2-0.5B',
+    designModel: '',
+    cloneModel: '',
+    voice: 'FunAudioLLM/CosyVoice2-0.5B:alex',
     format: 'mp3',
   },
   sapi: {
@@ -54,12 +65,15 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
 /**
  * Providers a user may pick as the primary provider.
  *
- * Only MiMo is wired end-to-end for now (preset / voice design / voice clone).
- * The other adapters stay available internally (offline SAPI remains a
- * fallback; the rest are reserved for future work) but are hidden from the
- * settings card until they are validated against a real key.
+ * MiMo, SiliconFlow and MiniMax are wired end-to-end. OpenAI-compatible and
+ * SAPI stay available internally (SAPI is the offline fallback) but are not
+ * offered as primary choices until they are validated against a real key.
  */
-export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set(['mimo'])
+export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set([
+  'mimo',
+  'siliconflow',
+  'minimax',
+])
 
 /**
  * True when `id` may be chosen as the primary provider.
@@ -80,6 +94,7 @@ export const BUILTIN_ADAPTERS: ReadonlyMap<string, ProviderAdapter> = new Map<
   [openaiAdapter.id, openaiAdapter],
   [mimoAdapter.id, mimoAdapter],
   [minimaxAdapter.id, minimaxAdapter],
+  [siliconflowAdapter.id, siliconflowAdapter],
   [sapiAdapter.id, sapiAdapter],
 ])
 

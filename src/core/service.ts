@@ -416,7 +416,7 @@ export class TtsService {
     if (!isProviderSelectable(providerId)) {
       throw new TtsError(
         'config',
-        `provider "${providerId}" is not available yet; choose "mimo" (offline SAPI remains available as a fallback)`,
+        `provider "${providerId}" is not available yet; choose an implemented provider (offline SAPI remains available as a fallback)`,
         { detail: { provider: providerId } },
       )
     }

@@ -13,8 +13,9 @@ path. It never plays, sends, uploads or streams audio — what happens to the fi
 is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 - Three model-facing tools: `tts_synthesize`, `tts_list_voices`, `tts_status`.
-- Four providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS), `sapi`
-  (offline Windows SAPI), and a `minimax` stub.
+- Five providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS),
+  `siliconflow` (SiliconFlow's OpenAI-compatible API), `sapi` (offline Windows
+  SAPI), and `minimax` (`t2a_v2`, hex audio).
 - Voice profiles: preset / cloned / designed voices, up to 50 profiles.
 - Backup / restore from the settings card: one self-contained `.json` export of
   profiles, samples and design candidates (no credential values), merged or
@@ -42,7 +43,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.4.4.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.5.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
@@ -177,18 +178,18 @@ can change it without remounting the plugin.
 
 ## Providers
 
-> **Only `mimo` is selectable for now.** The card offers just MiMo as the
-> primary provider; `openai-compatible` / `minimax` are disabled defaults and
-> offline `sapi` stays available as a fallback. The other adapters are kept for
-> future work and are rejected (`provider "..." is not available yet`) when
-> chosen as the primary provider.
+> **MiMo, SiliconFlow and MiniMax are selectable.** The card offers these three
+> as primary providers; `openai-compatible` remains a disabled default and
+> offline `sapi` stays available as a fallback. Other adapter ids are rejected
+> (`provider "..." is not available yet`) when chosen as the primary provider.
 
 | id | Protocol | Key | Formats | Voice design / clone |
 |---|---|---|---|---|
 | `openai-compatible` | `POST {baseURL}/audio/speech` (Bearer, raw bytes) | required | mp3, wav | no |
 | `mimo` | `POST {baseURL}/chat/completions` (`api-key` header, base64 audio) | required | wav, mp3 | yes / yes |
+| `siliconflow` | `POST {baseURL}/audio/speech` (OpenAI-compatible, raw bytes) | required | mp3, wav | no |
 | `sapi` | local PowerShell `System.Speech`, offline | not needed | wav | no |
-| `minimax` | stub: throws `not implemented` | required | mp3 | no |
+| `minimax` | `POST {baseURL}/t2a_v2` (Bearer, hex audio) | required | mp3, wav | no |
 
 `openai-compatible` covers OpenAI and any compatible gateway (SiliconFlow,
 self-hosted proxies, …); see `docs/providers.md` for request/response details
@@ -383,8 +384,8 @@ avoided because it spawns a binary.
 
 - **Singing is not implemented.** The capability table keeps a `singing` field,
   but no tool exposes a `mode` argument and no `sing` tool is registered.
-- **`minimax` is a stub**: configuration exists, synthesis throws
-  `not implemented`.
+- **`minimax` is non-streaming**: `POST /t2a_v2` with hex audio; streaming,
+  cloning and design are not wired in yet.
 - **No per-sentence voice design.** Design is a one-time workshop that freezes
   into a clone profile.
 - **The card lives on the Plugins page**, not in Settings; DSH 0.2.1 exposes

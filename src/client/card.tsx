@@ -76,6 +76,7 @@ const EMPTY_DRAFT: Draft = {
 /** Default credential references per provider. */
 const DEFAULT_REFS: Record<string, string> = {
   mimo: 'MIMO_API_KEY',
+  siliconflow: 'SILICONFLOW_API_KEY',
   'openai-compatible': 'OPENAI_API_KEY',
   minimax: 'MINIMAX_API_KEY',
 }
@@ -410,6 +411,29 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       }
     },
     [applyConfig, call, payload, refresh, t, writable],
+  )
+
+  /**
+   * Switch the primary provider and move the default voice to that provider's
+   * first catalogue entry. Without this a stale MiMo preset id would be sent to
+   * SiliconFlow/MiniMax, and a profile created for the previous provider would
+   * keep overriding the new provider's voice.
+   */
+  const changeProvider = useCallback(
+    (id: string) => {
+      const next = providers.find((provider) => provider.id === id)
+      const firstVoice = next?.capabilities.voices[0]?.id
+      const operations: ConfigOp[] = [
+        { op: 'set', path: ['provider'], value: id },
+        { op: 'set', path: ['activeProfileId'], value: '' },
+        { op: 'set', path: ['customVoiceId'], value: '' },
+      ]
+      if (firstVoice !== undefined && firstVoice !== '') {
+        operations.push({ op: 'set', path: ['presetVoiceId'], value: firstVoice })
+      }
+      void writeConfig(operations)
+    },
+    [providers, writeConfig],
   )
 
   /** Persist one read-aloud preference and drop the action cell's config cache. */
@@ -758,8 +782,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   const canDesign = providerMeta?.capabilities.voiceDesign === true
   const canClone = providerMeta?.capabilities.voiceClone === true
   const presetVoices = providerMeta?.capabilities.voices ?? []
-  // Only providers the host marks selectable may be chosen as the primary one
-  // (currently MiMo only); the others stay visible as "not available yet".
+  // Only providers the host marks selectable may be chosen as the primary one.
   const allProviderIds = payload?.providers ?? []
   const providerChoices = allProviderIds.filter(
     (id) => payload?.status.providers[id]?.selectable !== false,
@@ -1365,7 +1388,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             style={{ ...style.input, minWidth: 180 }}
             value={payload?.config.provider ?? ''}
             disabled={!writable}
-            onChange={(event) => void writeConfig([{ op: 'set', path: ['provider'], value: event.target.value }])}
+            onChange={(event) => changeProvider(event.target.value)}
           >
             {providerChoices.map((id) => (
               <option key={id} value={id}>{id}</option>

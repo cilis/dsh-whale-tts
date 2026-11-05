@@ -4,6 +4,18 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-11-05
+
+### Added
+
+- SiliconFlow provider (`siliconflow`): OpenAI-compatible `/audio/speech` with
+  CosyVoice2 defaults, a dedicated voice catalogue and provider-labelled errors.
+- MiniMax provider (`minimax`): non-streaming `POST /t2a_v2` with Bearer auth,
+  hex audio decoding, base-response error mapping and MP3/WAV output.
+- Both providers are selectable as the primary provider in the settings card.
+- Switching providers now resets the active profile and preset voice to the new
+  provider's first catalogue voice, avoiding stale cross-provider voice ids.
+
 ## [0.4.4] - 2026-11-05
 
 ### Changed

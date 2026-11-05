@@ -1,6 +1,6 @@
 {
   "name": "dsh-whale-tts",
-  "version": "0.4.4",
+  "version": "0.5.0",
   "description": "Provider-agnostic text-to-speech tools for DeepSeek Harness agents: local audio files, voice profiles, and a settings card.",
   "type": "module",
   "main": "lib/index.js",
@@ -86,6 +86,7 @@
     "speech",
     "mimo",
     "minimax",
+    "siliconflow",
     "sapi"
   ],
   "repository": {

@@ -11,7 +11,7 @@
 插件只做一件事：**把文本变成本地音频文件并返回路径**。它不播放、不发送、不上传音频——文件怎么用由消费方决定（QQ 桥接、视频流水线、播放器……）。
 
 - 三个模型可见工具：`tts_synthesize`、`tts_list_voices`、`tts_status`
-- 四个 provider：`openai-compatible`、`mimo`（小米 MiMo V2.5 TTS）、`sapi`（Windows 离线 SAPI）、`minimax`（空桩）
+- 五个 provider：`openai-compatible`、`mimo`（小米 MiMo V2.5 TTS）、`siliconflow`（硅基流动 OpenAI 兼容接口）、`sapi`（Windows 离线 SAPI）、`minimax`（`t2a_v2`，hex 音频）
 - 音色档案：预置 / 克隆 / 设计三类，最多 50 套
 - 设置卡（中英双语，位于 DSH「插件」页）
 - 密钥存 DSH 凭据库，插件只保存引用名，任何返回值都不含明文
@@ -33,7 +33,7 @@
 
 ```sh
 npm pack
-dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.4.4.tgz
+dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.5.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包层
 ```
 
@@ -121,8 +121,9 @@ powershell -ExecutionPolicy Bypass -File tools\install-whale-tts.ps1 -Rollback  
 |---|---|---|---|---|
 | `openai-compatible` | `POST {baseURL}/audio/speech`（Bearer，原始字节） | 需要 | mp3、wav | 否 |
 | `mimo` | `POST {baseURL}/chat/completions`（`api-key` 头，base64 音频） | 需要 | wav、mp3 | 是 / 是 |
+| `siliconflow` | `POST {baseURL}/audio/speech`（OpenAI 兼容，Bearer，原始字节） | 需要 | mp3、wav | 否 |
 | `sapi` | 本机 PowerShell `System.Speech`，断网可用 | 不需要 | wav | 否 |
-| `minimax` | 空桩：抛「未实现」 | 需要 | mp3 | 否 |
+| `minimax` | `POST {baseURL}/t2a_v2`（Bearer，hex 音频） | 需要 | mp3、wav | 否 |
 
 回退链：
 
@@ -278,7 +279,7 @@ host half 用 `tsc` 按文件编译到 `lib/`（含 `.d.ts`）；browser half �
 ## 已知限制
 
 - **不做唱歌**：能力表保留 `singing` 字段，但工具没有 `mode` 参数、不注册 sing 工具。
-- **`minimax` 是空桩**：配置位在，合成抛「未实现」。
+- **`minimax` 为非流式实现**：走 `POST /t2a_v2` 的 hex 音频；流式、克隆和设计暂未接入。
 - **不做每句现设计**：设计是一次性造声，产物固化为克隆档案。
 - **设置卡在「插件」页**，不在「设置」页：DSH 0.2.1 的插件配置页迁到了侧栏插件页，
   原方案里的 `settings.plugin.item` 槽在 0.2.1-rc.5 不存在。

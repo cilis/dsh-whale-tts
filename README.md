@@ -23,7 +23,7 @@
 ## 快速开始
 
 ```
-dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.4.4.tgz
+dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.5.0.tgz
 # 或在 DSH 插件页安装 tgz / 本地目录，装完重启 DSH
 ```
 
