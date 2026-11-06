@@ -602,6 +602,31 @@ test('testConnection reports success and classifies auth failures', async (t) =>
   assert.match(failed.error.message, /invalid key/)
 })
 
+test('testConnection tests only the selected provider, not the fallback chain', async (t) => {
+  const fallback = await setup(t, {
+    handler: () => {
+      throw new TtsError('auth', 'selected provider rejected the key', { status: 401 })
+    },
+    extraAdapters: [{ id: 'backup' }],
+    config: { fallback: ['backup'] },
+  })
+  const result = await fallback.service.testConnection({ signal: idleSignal() })
+  assert.equal(result.ok, false)
+  assert.equal(result.provider, 'fake')
+  assert.equal(result.error.kind, 'auth')
+  assert.equal(fallback.adapterCalls.backup.length, 0)
+})
+
+test('testConnection reports a missing key as auth instead of falling back', async (t) => {
+  const missing = await setup(t, { env: { FAKE_API_KEY: undefined } })
+  const result = await missing.service.testConnection({ signal: idleSignal() })
+  assert.equal(result.ok, false)
+  assert.equal(result.keyConfigured, false)
+  assert.equal(result.error.kind, 'auth')
+  assert.match(result.error.message, /FAKE_API_KEY/)
+  assert.equal(missing.adapterCalls.fake.length, 0)
+})
+
 /* -------------------------------------------------------------------------- */
 /* preview files                                                              */
 /* -------------------------------------------------------------------------- */

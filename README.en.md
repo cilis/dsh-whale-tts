@@ -43,7 +43,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.5.0.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.5.1.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 
@@ -52,6 +52,8 @@ dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 `dsh.bundle.patch`. Then restart DSH.
 
 ### From npm
+
+Published on npm (current `latest` is `0.4.4`):
 
 ```sh
 dsh plugin --profile <profile> add dsh-whale-tts

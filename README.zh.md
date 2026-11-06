@@ -33,7 +33,7 @@
 
 ```sh
 npm pack
-dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.5.0.tgz
+dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.5.1.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包层
 ```
 
@@ -42,7 +42,7 @@ dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包�
 
 ### npm
 
-若该包已发布到你的 registry：
+已发布到 npm（当前 latest 为 `0.4.4`）：
 
 ```sh
 dsh plugin --profile <profile> add dsh-whale-tts

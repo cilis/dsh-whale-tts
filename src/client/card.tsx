@@ -385,6 +385,21 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     void refresh()
   }, [refresh])
 
+  // A green/red connection result belongs to the settings it was produced
+  // with. Any provider/key/base-URL/voice change invalidates it.
+  useEffect(() => {
+    setTest(null)
+  }, [
+    payload?.config.provider,
+    payload?.config.apiKeyEnv,
+    payload?.config.keySource,
+    payload?.config.baseURLOverride,
+    payload?.config.keyType,
+    keyValue,
+    draft.presetVoiceId,
+    draft.customVoiceId,
+  ])
+
   const writable = payload?.writable === true
 
   const writeConfig = useCallback(
@@ -427,13 +442,23 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
         { op: 'set', path: ['provider'], value: id },
         { op: 'set', path: ['activeProfileId'], value: '' },
         { op: 'set', path: ['customVoiceId'], value: '' },
+        { op: 'set', path: ['apiKeyEnv'], value: '' },
+        { op: 'set', path: ['baseURLOverride'], value: '' },
+        { op: 'set', path: ['keyType'], value: 'auto' },
       ]
       if (firstVoice !== undefined && firstVoice !== '') {
         operations.push({ op: 'set', path: ['presetVoiceId'], value: firstVoice })
       }
-      void writeConfig(operations)
+      // Clearing `activeProfileId` only empties the config override; the voice
+      // store keeps its own pointer and would otherwise keep using a MiMo clone
+      // on SiliconFlow/MiniMax. Deactivate it explicitly as well.
+      void (async () => {
+        await call('profiles/activate', { id: null }).catch(() => undefined)
+        await writeConfig(operations)
+        await refresh()
+      })()
     },
-    [providers, writeConfig],
+    [call, providers, refresh, writeConfig],
   )
 
   /** Persist one read-aloud preference and drop the action cell's config cache. */
@@ -794,12 +819,13 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
   // Clearing follows *ownership*, not the mode: only refs this plugin wrote may
   // be deleted. A credential that only DSH owns (shared) is read-only here.
   const keySourceIsReuse = payload?.config.keySource !== 'manual'
+  const defaultKeyRef = payload === null ? '' : (DEFAULT_REFS[payload.config.provider] ?? '')
   const effectiveKeyRef =
     payload === null
       ? ''
       : payload.config.apiKeyEnv.trim() !== ''
         ? payload.config.apiKeyEnv.trim()
-        : (DEFAULT_REFS[payload.config.provider] ?? '')
+        : defaultKeyRef
   const selectedKeyRow = payload?.keys?.find((candidate) => candidate.ref === effectiveKeyRef)
   const keyClearable = selectedKeyRow?.owned === true
 
@@ -982,7 +1008,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
         </div>
 
         {payload?.config.studioMode === 'preset' ? (
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={style.row}>
               <span style={style.label}>{t('presetVoice')}</span>
               <select
@@ -1252,10 +1278,16 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                         disabled={busy !== null}
                         onClick={() =>
                           void run('play-profile', async () => {
-                            await call('profiles/activate', { id: profile.id })
+                            // A clone profile already owns a reference sample.
+                            // Play that instead of re-synthesising through the
+                            // provider (which can hit a 30s MiMo timeout).
+                            if (profile.kind === 'clone' && profile.sampleFile !== undefined) {
+                              await playAudio('sample', profile.sampleFile)
+                              return
+                            }
+                            await activateProfile(profile)
                             const result = await call<PreviewPayload>('preview', { text: draft.previewText })
                             await playAudio('preview', result.file)
-                            await refresh()
                           })
                         }
                       >
@@ -1446,7 +1478,11 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
               void writeConfig([{ op: 'set', path: ['apiKeyEnv'], value: event.target.value }])
             }
           >
-            <option value="">—</option>
+            <option value="">
+              {defaultKeyRef === ''
+                ? t('keyAuto')
+                : t('keyAutoRef', { ref: defaultKeyRef })}
+            </option>
             {keyCandidates.map((candidate) => (
               <option key={candidate.ref} value={candidate.ref}>
                 {candidate.ref}
@@ -1455,9 +1491,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             ))}
           </select>
           <span style={style.tag}>
-            {keyCandidates.find((candidate) => candidate.ref === payload?.config.apiKeyEnv)?.configured === true
-              ? t('keyConfigured')
-              : t('keyMissing')}
+            {selectedKeyRow?.configured === true ? t('keyConfigured') : t('keyMissing')}
           </span>
         </div>
         <div style={style.row}>
@@ -1505,7 +1539,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             )}
           </div>
         </div>
-        {effectiveKeyRef !== '' && !keyClearable ? (
+        {effectiveKeyRef !== '' && selectedKeyRow?.configured === true && !keyClearable ? (
           <div style={style.hint}>
             {keySourceIsReuse ? t('keyClearReuseHint') : t('keyClearSharedHint')}
           </div>

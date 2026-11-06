@@ -425,15 +425,21 @@ export class TtsService {
     const keyInfo = ref === '' ? undefined : await this.keys.resolve(ref)
     const keyType: KeyType = snap.keyType !== 'auto' ? snap.keyType : (keyInfo?.keyType ?? 'unknown')
 
-    const resolvedVoice = options.ignoreVoice === true
+    let resolvedVoice = options.ignoreVoice === true
       ? {}
       : await this.resolveVoice(snap, providerConfig)
 
     if (resolvedVoice.sample !== undefined && adapter.capabilities.voiceClone !== true) {
-      throw new TtsError(
-        'validation',
-        `provider "${providerId}" cannot synthesise with a cloned voice profile`,
+      // A clone/design profile activated on MiMo stays in voices.json when the
+      // user switches to a provider without cloning. Fall back to that
+      // provider's configured preset voice instead of failing every synthesis.
+      this.logger.warn(
+        '[whale-tts] provider %s does not support cloning; ignoring active voice profile %s',
+        providerId,
+        resolvedVoice.profileId ?? '(unknown)',
       )
+      resolvedVoice = {}
+      await this.voices.activate(null).catch(() => undefined)
     }
 
     let voice: string | undefined = resolvedVoice.voice
@@ -667,8 +673,31 @@ export class TtsService {
       const keyInfo = ref === '' ? undefined : await this.keys.resolve(ref)
       keyConfigured = keyInfo !== undefined
       keyType = snap.keyType !== 'auto' ? snap.keyType : (keyInfo?.keyType ?? 'unknown')
-      const prepared = await this.prepare({ text, provider: providerId }, options.signal)
-      await this.runPrepared(prepared)
+      const adapter = getAdapter(providerId, this.adapterMap())
+      if (adapter?.capabilities.requiresKey === true && !keyConfigured) {
+        return {
+          ok: false,
+          provider: providerId,
+          keyConfigured,
+          keyType,
+          latencyMs: Date.now() - startedAt,
+          error: {
+            kind: 'auth',
+            message:
+              ref === ''
+                ? 'no credential reference configured'
+                : `credential "${ref}" is not configured`,
+          },
+        }
+      }
+      const prepared = await this.prepare({ text, provider: providerId }, options.signal, {
+        // Credential/endpoint testing must not be masked by an active clone
+        // profile left over from another provider.
+        ignoreVoice: true,
+      })
+      // A connection test must test the selected provider, not silently pass
+      // because the fallback (typically offline SAPI) succeeded.
+      await this.runPrepared(prepared, { fallback: [] })
       return {
         ok: true,
         provider: providerId,

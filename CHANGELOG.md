@@ -4,6 +4,31 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-11-06
+
+### Fixed
+
+- Switching providers now clears the previous provider's credential reference,
+  Base URL override and key type. The card no longer shows
+  `XIAOMI_TOKEN_PLAN_CN_API_KEY` after choosing SiliconFlow or MiniMax.
+- The credential-reference selector shows an explicit
+  `Automatic: <default-ref>` option and reports the effective ref's state;
+  the shared-credential hint only appears when that ref is actually configured.
+- Connection test no longer silently falls back to offline SAPI. It tests the
+  selected provider only, and a missing key is reported as an auth failure
+  instead of a green "connected" result.
+- An active clone/design profile from a cloning provider no longer blocks
+  SiliconFlow/MiniMax: synthesis and preview fall back to the selected
+  provider's preset voice and clear the stale activation pointer.
+- Switching providers also deactivates the voice store's own pointer, not just
+  the config override.
+- A connection-test result is cleared as soon as the provider, credential ref,
+  key source, key type, Base URL, key input or voice changes.
+- Voice-profile play now plays a clone profile's own sample directly instead of
+  re-synthesising through MiMo (which could hit the 30 s request timeout); preset
+  profiles activate before previewing. The preset-voice and archive-name rows are
+  separated by a 14 px vertical gap.
+
 ## [0.5.0] - 2026-11-05
 
 ### Added
