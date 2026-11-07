@@ -1,7 +1,7 @@
 # dsh-whale-tts 产品规划：聚合型 TTS 层
 
-> 规划稿 v0.2 · 2026-11-07  
-> 状态：D1（QQBot 双通道分阶段）与 D2（P0 范围）已确认；其余决策待确认。确认前不改实现代码。
+> 规划稿 v0.3 · 2026-11-07  
+> 状态：D1（QQBot 双通道分阶段）、D2（P0 范围）、D3（本地引擎部署形态）已确认；其余决策待确认。确认前不改实现代码。
 
 ## 1. 背景与目标
 
@@ -366,24 +366,35 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 > ZipVoice（Apache-2.0，123M，CPU 中英文克隆）和 Qwen3-TTS（Apache-2.0，GPU）候选。
 > 原路线图的「Piper 先行 / GPT-SoVITS 先行」需要按复核结论调整，**待确认后再改路线图**。
 
-### 9.1 三种运行时形态
+### 9.1 部署形态（2026-11-07 确认）
 
-1. **in-process ONNX**：Piper/Kokoro/sherpa-onnx，Node 侧调用 onnxruntime 或本地可执行；启动快、依赖少。
-2. **sidecar HTTP**：GPT-SoVITS/CosyVoice/Fish，启动一个本地 Python/服务进程，插件通过 127.0.0.1 调用；统一健康检查和端口管理。
-3. **subprocess CLI**：只对白名单二进制开放，参数化调用，禁止 shell 拼接。
+**不采用 Ollama。** Ollama 是 LLM/GGUF 文本推理运行时，没有标准的 TTS 音频输出接口；TTS 还需要采样率、参考音频、声码器和音频后处理，和 Ollama 的文本 token 推理不是一类东西。技术上可以给 Ollama 写自定义 runner，但那是给 Ollama 做插件，不是给本插件做本地引擎。
+
+| 形态 | 适用引擎 | 插件职责 | 用户前提 |
+| --- | --- | --- | --- |
+| **ONNX/CLI（P2 默认）** | sherpa-onnx、ZipVoice、Kokoro ONNX | 下载/校验模型包，spawn 白名单 CLI，读临时 WAV | 无需 Python/CUDA |
+| **Python sidecar（P3）** | GPT-SoVITS、CosyVoice3、Qwen3-TTS、VoxCPM2 | 启动/守护进程，端口/健康检查/超时，HTTP 调用 | 独立 venv/conda + GPU/CUDA（可选 CPU） |
+| **External HTTP（P4，可选）** | 任意 OpenAI-compatible TTS、Docker/远程服务 | 只配置 baseURL/key/model，不管理进程 | 用户自己起服务 |
+
+原则：
+
+- 优先 CLI，不把 ONNX runtime 以 native addon 嵌入 DSH 进程；
+- GPU 引擎不把 PyTorch/CUDA 塞进 DSH 或 npm 包，必须独立环境；
+- 外部 HTTP 是高级用户的逃生口，不是默认路径；
+- 本地失败可回退云端或 SAPI，不阻塞主流程。
 
 ### 9.2 模型包管理器
 
 ```json
 {
-  "id": "piper-zh_CN-huayan-medium",
-  "engine": "piper",
+  "id": "kokoro-82m-zh",
+  "engine": "sherpa-onnx",
   "version": "1.0.0",
-  "voices": [{ "id": "zh_CN-huayan-medium", "language": "zh-CN" }],
+  "voices": [{ "id": "zf_xiaobei", "language": "zh-CN" }],
   "files": [{ "path": "model.onnx", "sha256": "…" }],
-  "license": "MIT",
-  "sizeBytes": 63200000,
-  "hardware": { "requiresGpu": false, "minRamMb": 512 },
+  "license": "Apache-2.0",
+  "sizeBytes": 320000000,
+  "hardware": { "requiresGpu": false, "minRamMb": 1024 },
   "source": "https://…"
 }
 ```
@@ -408,6 +419,17 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 - 本地 HTTP 只绑 127.0.0.1，随机端口，短时 token。
 - 许可证元数据随模型包保存；README 提示用户自行确认商用/再分发许可。
 - 不把本地模型文件打进 npm/GitHub Release。
+
+### 9.5 安装与设置页
+
+设置卡新增「本地引擎」页，流程固定为：
+
+1. **引擎列表**：sherpa-onnx / ZipVoice / Qwen3-TTS / GPT-SoVITS…，显示已安装/运行中/不可用。
+2. **模型包**：语言、大小、许可证、CPU/GPU 要求、预计磁盘占用；安装前必须确认来源和许可。
+3. **安装**：下载 → sha256 校验 → 解压到 `stateDir/models/<engine>/<pack>`；失败保留旧版本。
+4. **运行**：启动/停止/重启、端口、健康状态、最近日志（脱敏，不含文本/密钥）。
+5. **测试**：用固定短句试听，显示 RTF、首句延迟、provider/engine 版本。
+6. **回退**：本地不可用时按 `local → cloud → SAPI` 顺序回退，并在 `tts_status` 标出原因。
 
 ## 10. README/产品说明页规划
 
@@ -499,12 +521,29 @@ P0 只做文档与契约，不改现有行为：
 - `tts_status` preflight：检查 `output.dir` 是否等于 QQBot 语音库目录，不一致时给出明确警告。
 - 不新增 HTTP、不改 provider 行为、不升大版本。
 
+### D3. 本地引擎部署形态（2026-11-07 确认）
+
+**结论**：不采用 Ollama；本地 TTS 按三种形态部署：
+
+- **P2 / CPU 默认**：sherpa-onnx 预编译 CLI + 模型包；插件托管进程，不需要 Python/CUDA。
+- **P3 / GPU**：Qwen3-TTS、CosyVoice3、GPT-SoVITS、VoxCPM2 等独立 Python sidecar；插件负责启动、端口、健康检查和超时。
+- **P4 / 可选**：外部 OpenAI-compatible TTS HTTP 服务，插件只配置 baseURL/key/model，不管理进程。
+
+理由：
+
+1. Ollama 是 LLM/GGUF 文本运行时，没有标准 TTS 音频接口；给 Ollama 写 TTS runner 等于维护另一套引擎。
+2. CPU 引擎用 CLI 最轻，用户体验最好，也避免 native addon 的 ABI/打包问题。
+3. GPU 引擎的 PyTorch/CUDA 依赖必须隔离在独立环境，不能塞进 DSH/npm。
+4. 外部 HTTP 服务是高级用户的逃生口，适合 Docker/远程/自建；不是默认路径。
+5. 插件只做「生命周期 + HTTP/CLI 适配」，不复制各引擎的推理逻辑。
+
 ## 15. 待确认决策
 
-1. **本地引擎优先级**：先做 CPU（Piper/Kokoro/sherpa）还是先做克隆（GPT-SoVITS/CosyVoice）？
+1. **本地引擎优先级**：先做 CPU（sherpa-onnx + Kokoro/ZipVoice）还是先做 GPU（Qwen3-TTS）？
 2. **包结构**：保持单包 `dsh-whale-tts`（内部模块化），还是拆成 `core` / `providers` / `local` 多个 npm 包？我建议先单包，稳定后再拆。
 3. **首个实现切片**：P0 之后先做 P1（Qwen/Doubao + registry 重构），还是先做 P2（本地 CPU）？
 4. **本地模型分发**：是否允许插件在用户确认后从 GitHub / HuggingFace 下载模型？还是只支持用户手动放置？
 5. **README 语言**：中文为主 + 英文镜像，还是先只写中文？
+6. **Piper 处理**：用 sherpa 跑 Piper 格式模型，还是把 `piper1-gpl` 作为外部可选依赖（需接受 GPL-3.0）？
 
 确认这些之后，我再拆成具体任务和版本计划；在确认前不改代码。
