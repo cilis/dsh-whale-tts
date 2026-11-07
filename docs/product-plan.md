@@ -361,6 +361,10 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 ## 9. 本地 TTS 接入方案
 
 > 引擎对比、许可证和选型细节见 [local-tts-research.md](local-tts-research.md)。
+>
+> **2026-11-07 复核备忘**：Piper 当前维护库已转 GPL-3.0（原 MIT 仓库归档）；新增
+> ZipVoice（Apache-2.0，123M，CPU 中英文克隆）和 Qwen3-TTS（Apache-2.0，GPU）候选。
+> 原路线图的「Piper 先行 / GPT-SoVITS 先行」需要按复核结论调整，**待确认后再改路线图**。
 
 ### 9.1 三种运行时形态
 
