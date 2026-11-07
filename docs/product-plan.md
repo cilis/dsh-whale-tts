@@ -360,6 +360,8 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 
 ## 9. 本地 TTS 接入方案
 
+> 引擎对比、许可证和选型细节见 [local-tts-research.md](local-tts-research.md)。
+
 ### 9.1 三种运行时形态
 
 1. **in-process ONNX**：Piper/Kokoro/sherpa-onnx，Node 侧调用 onnxruntime 或本地可执行；启动快、依赖少。
