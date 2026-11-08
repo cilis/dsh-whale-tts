@@ -44,6 +44,7 @@ const PROFILE_SCHEMA: JsonSchemaNode = {
     id: { type: 'string' },
     name: { type: 'string' },
     kind: { type: 'string', enum: ['preset', 'clone', 'design'] },
+    provider: { type: 'string' },
     description: { type: 'string' },
     tags: { type: 'array', items: { type: 'string' } },
     presetVoiceId: { type: 'string' },

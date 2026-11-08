@@ -27,10 +27,12 @@ import {
   TtsError,
   type AudioFormat,
   type DesignCandidate,
+  type KeyType,
   type LoggerLike,
   type ResolvedVoice,
   type VoiceProfile,
   type VoiceProfileKind,
+  type VoiceProfileProviderSettings,
   type VoiceState,
 } from '../types.js'
 import {
@@ -78,6 +80,10 @@ export interface VoiceProfileInput {
   id?: string
   name: string
   kind: VoiceProfileKind
+  /** Provider this profile belongs to; omitted for old/unbound profiles. */
+  provider?: string
+  /** Non-secret provider settings captured at save time. */
+  providerSettings?: VoiceProfileProviderSettings
   description?: string
   tags?: string[]
   /** `preset`: provider voice id. */
@@ -145,6 +151,8 @@ export interface VoiceExportData {
 export interface VoiceImportProfile {
   readonly name: string
   readonly kind: VoiceProfileKind
+  readonly provider?: string
+  readonly providerSettings?: VoiceProfileProviderSettings
   readonly description?: string
   readonly tags?: readonly string[]
   readonly presetVoiceId?: string
@@ -177,6 +185,8 @@ interface ProfileFields {
   readonly kind: VoiceProfileKind
   readonly createdAt: string
   readonly updatedAt: string
+  readonly provider?: string
+  readonly providerSettings?: VoiceProfileProviderSettings
   readonly description?: string
   readonly tags?: readonly string[]
   readonly presetVoiceId?: string
@@ -410,6 +420,10 @@ function createProfile(fields: ProfileFields): VoiceProfile {
     updatedAt: fields.updatedAt,
   }
   if (fields.description !== undefined) profile.description = fields.description
+  if (fields.provider !== undefined) profile.provider = fields.provider
+  if (fields.providerSettings !== undefined) {
+    profile.providerSettings = { ...fields.providerSettings }
+  }
   if (fields.tags !== undefined) profile.tags = [...fields.tags]
   if (fields.styleInstruction !== undefined) {
     profile.styleInstruction = fields.styleInstruction
@@ -458,6 +472,34 @@ function normalizeCandidateIds(value: unknown): string[] | undefined {
   return ids.length === 0 ? undefined : ids
 }
 
+const KEY_TYPE_VALUES: ReadonlySet<string> = new Set<KeyType | 'auto'>([
+  'auto',
+  'pay-as-you-go',
+  'token-plan',
+  'token-plan-team',
+  'custom',
+  'unknown',
+])
+
+/** Read the non-secret provider settings stored on a profile. */
+function normalizeProviderSettings(value: unknown): VoiceProfileProviderSettings | undefined {
+  if (!isRecord(value)) return undefined
+  const apiKeyEnv = trimmed(value.apiKeyEnv)
+  const baseURLOverride = trimmed(value.baseURLOverride)
+  const keyType =
+    typeof value.keyType === 'string' && KEY_TYPE_VALUES.has(value.keyType)
+      ? (value.keyType as KeyType | 'auto')
+      : undefined
+  if (apiKeyEnv === undefined && baseURLOverride === undefined && keyType === undefined) {
+    return undefined
+  }
+  return {
+    ...(apiKeyEnv === undefined ? {} : { apiKeyEnv }),
+    ...(baseURLOverride === undefined ? {} : { baseURLOverride }),
+    ...(keyType === undefined ? {} : { keyType }),
+  }
+}
+
 /**
  * Validate one profile loaded from disk.
  *
@@ -483,6 +525,8 @@ function normalizeProfile(entry: unknown): VoiceProfile | undefined {
     kind,
     createdAt,
     updatedAt,
+    provider: trimmed(entry.provider),
+    providerSettings: normalizeProviderSettings(entry.providerSettings),
     description: trimmed(entry.description),
     tags: normalizeTags(entry.tags),
     presetVoiceId: trimmed(entry.presetVoiceId),
@@ -860,6 +904,10 @@ export class VoiceStore {
         kind,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
+        provider:
+          optionalText(input.provider, 'voice profile provider') ?? existing?.provider,
+        providerSettings:
+          normalizeProviderSettings(input.providerSettings) ?? existing?.providerSettings,
         description: optionalText(input.description, 'voice profile description'),
         tags: optionalTags(input.tags),
         presetVoiceId: optionalText(input.presetVoiceId, 'voice profile preset voice id'),
@@ -979,6 +1027,8 @@ export class VoiceStore {
         kind: source.kind,
         createdAt: now,
         updatedAt: now,
+        provider: source.provider,
+        providerSettings: source.providerSettings,
         description: source.description,
         tags: source.tags,
         presetVoiceId: source.presetVoiceId,
@@ -1161,6 +1211,10 @@ export class VoiceStore {
     candidateId: string,
     name: string,
     description?: string,
+    binding?: {
+      readonly provider?: string
+      readonly providerSettings?: VoiceProfileProviderSettings
+    },
   ): Promise<VoiceProfile> {
     return this.exclusive(async () => {
       const state = await this.loadState()
@@ -1200,6 +1254,8 @@ export class VoiceStore {
           kind: 'clone',
           createdAt: now,
           updatedAt: now,
+          provider: optionalText(binding?.provider, 'voice profile provider'),
+          providerSettings: normalizeProviderSettings(binding?.providerSettings),
           designDescription: optionalText(description, 'voice design description'),
           // The design prompt defines the delivery (tone, emotion, pace), not
           // just the timbre: keep it as the profile's default style instruction
@@ -1512,6 +1568,8 @@ export class VoiceStore {
             kind,
             createdAt: now,
             updatedAt: now,
+            provider: optionalText(input.provider, 'voice profile provider'),
+            providerSettings: normalizeProviderSettings(input.providerSettings),
             description: optionalText(input.description, 'voice profile description'),
             tags: normalizeTags(input.tags),
             presetVoiceId: optionalText(input.presetVoiceId, 'voice profile preset voice id'),

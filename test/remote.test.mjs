@@ -478,6 +478,80 @@ test('profiles/activate treats a missing id as "provider default"', async () => 
   assert.deepEqual(activated, [null, 'vp_abc123'])
 })
 
+test('profiles/use switches to the bound provider and applies saved settings', async () => {
+  const profile = {
+    id: 'vp_bound',
+    name: 'bound clone',
+    kind: 'clone',
+    provider: 'mimo',
+    providerSettings: {
+      apiKeyEnv: 'XIAOMI_TOKEN_PLAN_CN_API_KEY',
+      baseURLOverride: 'https://token-plan-cn.xiaomimimo.com/v1',
+      keyType: 'token-plan',
+    },
+    sampleFile: 'voice.wav',
+    createdAt: '2026-11-01T00:00:00.000Z',
+    updatedAt: '2026-11-01T00:00:00.000Z',
+  }
+  const { settings: settingsFake, calls: settingsCalls } = makeSettings()
+  const { handler, calls } = makeHandler({
+    settings: settingsFake,
+    service: {
+      listProfiles: async () => [profile],
+      listVoices: async () => ({
+        providers: [
+          {
+            id: 'mimo',
+            capabilities: {
+              speech: true,
+              singing: false,
+              formats: ['wav'],
+              voices: [{ id: 'v1' }],
+              requiresKey: true,
+              voiceClone: true,
+              voiceDesign: true,
+            },
+            voices: [{ id: 'v1' }],
+          },
+        ],
+        profiles: [profile],
+        activeProfileId: null,
+      }),
+      status: async () => ({
+        provider: 'fake',
+        fallback: [],
+        providers: { mimo: { available: true, selectable: true } },
+        activeProfileId: null,
+        activeVoice: 'v1',
+        cache: { enabled: true, files: 0, bytes: 0 },
+        outputDir: 'C:\\out',
+        platform: 'win32',
+      }),
+    },
+  })
+
+  const result = await handler('profiles/use', { id: 'vp_bound' }, idleSignal())
+  assert.equal(result.ok, true)
+  assert.deepEqual({ ...result.value }, {
+    activeProfileId: 'vp_bound',
+    provider: 'mimo',
+    switched: true,
+    inferred: false,
+  })
+  assert.equal(calls.some(([name, id]) => name === 'activateProfile' && id === 'vp_bound'), true)
+  const mutate = settingsCalls.find(([name]) => name === 'mutate')
+  assert.ok(mutate)
+  const operations = mutate[2]
+  assert.equal(operations.some((op) => op.path[0] === 'provider' && op.value === 'mimo'), true)
+  assert.equal(
+    operations.some(
+      (op) =>
+        op.path[0] === 'apiKeyEnv' && op.value === 'XIAOMI_TOKEN_PLAN_CN_API_KEY',
+    ),
+    true,
+  )
+})
+
 test('samples/upload decodes base64 and derives the extension and mime type', async () => {
   const { handler, calls } = makeHandler()
   const base64 = Buffer.from(WAV).toString('base64')

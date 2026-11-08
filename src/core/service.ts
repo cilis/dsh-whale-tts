@@ -35,7 +35,12 @@ import {
   type BackupImportResult,
 } from '../types.js'
 import { snapshot, type Config, type ConfigSnapshot } from '../config.js'
-import { KeyResolver, defaultBaseURLFor, type CredentialBridge } from '../credentials.js'
+import {
+  KeyResolver,
+  credentialRefsFor,
+  defaultBaseURLFor,
+  type CredentialBridge,
+} from '../credentials.js'
 import { VoiceStore, type VoiceImportProfile, type VoiceProfileInput } from './voices.js'
 import { OwnedKeyStore } from './owned-keys.js'
 import { SynthesisCache } from './cache.js'
@@ -797,8 +802,12 @@ export class TtsService {
     candidateId: string,
     name: string,
     description?: string,
+    binding?: {
+      readonly provider?: string
+      readonly providerSettings?: import('../types.js').VoiceProfileProviderSettings
+    },
   ): Promise<VoiceProfile> {
-    return this.voices.adoptCandidate(candidateId, name, description)
+    return this.voices.adoptCandidate(candidateId, name, description, binding)
   }
 
   // ------------------------------------------------------------- inspection
@@ -1034,10 +1043,17 @@ export class TtsService {
     return this.keys.describe(ref)
   }
 
-  /** Candidate credential refs and their status. */
-  async credentialCandidates() {
+  /** Candidate credential refs and their status, scoped to one provider. */
+  async credentialCandidates(provider?: string) {
+    const snap = this.snapshot()
+    const providerId = (provider ?? snap.provider).trim() || snap.provider
+    const providerConfig = providerConfigFor(providerId, snap.providers)
+    const configuredRef =
+      providerId === snap.provider && snap.apiKeyEnv.trim() !== ''
+        ? snap.apiKeyEnv
+        : (providerConfig.apiKeyEnv ?? '')
     const refs = await this.ownedKeys.list()
-    const rows = await this.keys.candidates()
+    const rows = await this.keys.candidates(credentialRefsFor(providerId, configuredRef))
     return rows.map((row) => ({ ...row, owned: refs.includes(row.ref) }))
   }
 

@@ -262,6 +262,19 @@ export function redact(text: string): string {
 export type VoiceProfileKind = 'preset' | 'clone' | 'design'
 
 /**
+ * Provider settings captured when a voice profile is saved. Only references
+ * and routing choices are stored; secret values never enter a profile.
+ */
+export interface VoiceProfileProviderSettings {
+  /** Credential reference name (not the key value). */
+  readonly apiKeyEnv?: string
+  /** Per-profile Base URL override. */
+  readonly baseURLOverride?: string
+  /** Billing family selector; `auto` keeps the inferred family. */
+  readonly keyType?: KeyType | 'auto'
+}
+
+/**
  * One stored voice profile.
  *
  * - `preset` synthesises with a provider preset voice id.
@@ -273,6 +286,10 @@ export interface VoiceProfile {
   readonly id: string
   readonly name: string
   readonly kind: VoiceProfileKind
+  /** Provider this profile was saved for; absent on older/unbound profiles. */
+  readonly provider?: string
+  /** Provider settings to restore when the profile is activated. */
+  readonly providerSettings?: VoiceProfileProviderSettings
   /** Optional free-form note or design description. */
   readonly description?: string
   readonly tags?: readonly string[]

@@ -527,18 +527,27 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     )
   }, [call, draft.customVoiceId, draft.presetVoiceId, draft.previewText, playAudio, run, t])
 
+  /** The provider + non-secret settings a new profile should remember. */
+  const profileBinding = useCallback(() => {
+    if (payload === null) return {}
+    return {
+      provider: payload.config.provider,
+      providerSettings: {
+        apiKeyEnv: payload.config.apiKeyEnv,
+        baseURLOverride: payload.config.baseURLOverride,
+        keyType: payload.config.keyType,
+      },
+    }
+  }, [payload])
+
   const activateProfile = useCallback(
     async (profile: Profile) => {
-      await call('profiles/activate', { id: profile.id })
-      if (payload?.config.activeProfileId !== profile.id) {
-        await call('config/mutate', {
-          operations: [{ op: 'set', path: ['activeProfileId'], value: profile.id }],
-          expectedRevision: payload?.revision,
-        })
-      }
+      // The host applies the profile's provider binding (if any), then moves
+      // the activation pointer. It infers a provider only when unambiguous.
+      await call('profiles/use', { id: profile.id })
       await refresh()
     },
-    [call, payload, refresh],
+    [call, refresh],
   )
 
   const savePresetProfile = useCallback(async () => {
@@ -550,12 +559,12 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     const name = draft.profileName.trim() !== '' ? draft.profileName.trim() : voiceId
     await run('save-profile', async () => {
       const profile = await call<Profile>('profiles/save', {
-        profile: { name, kind: 'preset', presetVoiceId: voiceId },
+        profile: { ...profileBinding(), name, kind: 'preset', presetVoiceId: voiceId },
       })
       await activateProfile(profile)
       setDraft((previous) => ({ ...previous, profileName: '' }))
     }, t('profileSaved'))
-  }, [activateProfile, call, draft, run, t])
+  }, [activateProfile, call, draft, profileBinding, run, t])
 
   const generateCandidates = useCallback(async () => {
     if (draft.designDescription.trim() === '') {
@@ -580,6 +589,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
             ? draft.profileName.trim()
             : `${t('designVoiceName')} ${new Date().toLocaleDateString()}`
         const profile = await call<Profile>('design/adopt', {
+          ...profileBinding(),
           candidateId: candidate.id,
           name,
           // The design prompt defines the delivery, not just the timbre; the
@@ -590,7 +600,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
         setDraft((previous) => ({ ...previous, profileName: '' }))
       }, t('designAdopted'))
     },
-    [activateProfile, call, draft.profileName, run, t],
+    [activateProfile, call, draft.designDescription, draft.profileName, profileBinding, run, t],
   )
 
   const discardCandidates = useCallback(async () => {
@@ -638,6 +648,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     await run('save-clone', async () => {
       const profile = await call<Profile>('profiles/save', {
         profile: {
+          ...profileBinding(),
           name,
           kind: 'clone',
           sampleFile,
@@ -649,7 +660,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
       setDraft((previous) => ({ ...previous, profileName: '', cloneSampleFile: '' }))
       setPendingSample(null)
     }, t('profileSaved'))
-  }, [activateProfile, call, draft, pendingSample, run, t])
+  }, [activateProfile, call, draft, pendingSample, profileBinding, run, t])
 
   const removeProfile = useCallback((profile: Profile) => {
     setDeletingId(profile.id)
@@ -1260,6 +1271,11 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                   <span style={{ minWidth: 140 }}>{profile.name}</span>
                 )}
                 <span style={style.tag}>{t(`kind${capitalize(profile.kind)}`)}</span>
+                <span style={style.tag}>
+                  {profile.provider === undefined || profile.provider === ''
+                    ? t('profileUnbound')
+                    : profile.provider}
+                </span>
                 {active ? <span style={style.tag}>{t('activeLabel')}</span> : null}
                 {profile.description === undefined || profile.description === '' ? null : (
                   <span style={style.muted}>{profile.description}</span>

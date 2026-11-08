@@ -921,6 +921,62 @@ test('keys written through the plugin are owned; shared credentials are not', as
   assert.deepEqual(owned.refs, [])
 })
 
+test('credentialCandidates scopes refs to the selected provider', async (t) => {
+  const { service } = await setup(t)
+
+  const mimo = await service.credentialCandidates('mimo')
+  assert.deepEqual(
+    mimo.map((row) => row.ref),
+    ['MIMO_API_KEY', 'XIAOMI_MIMO_API_KEY', 'XIAOMI_TOKEN_PLAN_CN_API_KEY'],
+  )
+
+  const siliconflow = await service.credentialCandidates('siliconflow')
+  assert.deepEqual(
+    siliconflow.map((row) => row.ref),
+    ['SILICONFLOW_API_KEY'],
+  )
+
+  const minimax = await service.credentialCandidates('minimax')
+  assert.deepEqual(minimax.map((row) => row.ref), ['MINIMAX_API_KEY'])
+})
+
+test('voice profiles keep their provider binding through save and duplicate', async (t) => {
+  const { service } = await setup(t)
+  const profile = await service.saveProfile({
+    name: 'bound preset',
+    kind: 'preset',
+    provider: 'mimo',
+    providerSettings: {
+      apiKeyEnv: 'XIAOMI_TOKEN_PLAN_CN_API_KEY',
+      baseURLOverride: 'https://token-plan-cn.xiaomimimo.com/v1',
+      keyType: 'token-plan',
+    },
+    presetVoiceId: 'v1',
+  })
+
+  assert.equal(profile.provider, 'mimo')
+  assert.deepEqual({ ...profile.providerSettings }, {
+    apiKeyEnv: 'XIAOMI_TOKEN_PLAN_CN_API_KEY',
+    baseURLOverride: 'https://token-plan-cn.xiaomimimo.com/v1',
+    keyType: 'token-plan',
+  })
+
+  const copy = await service.duplicateProfile(profile.id)
+  assert.equal(copy.provider, 'mimo')
+  assert.deepEqual({ ...copy.providerSettings }, { ...profile.providerSettings })
+  assert.notEqual(copy.id, profile.id)
+
+  // A partial update (rename/style) must not erase the binding.
+  const renamed = await service.saveProfile({
+    id: profile.id,
+    name: 'renamed',
+    kind: 'preset',
+    presetVoiceId: 'v1',
+  })
+  assert.equal(renamed.provider, 'mimo')
+  assert.deepEqual({ ...renamed.providerSettings }, { ...profile.providerSettings })
+})
+
 /* -------------------------------------------------------------------------- */
 /* backup / restore                                                           */
 /* -------------------------------------------------------------------------- */

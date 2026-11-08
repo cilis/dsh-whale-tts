@@ -8,6 +8,12 @@ export interface Profile {
   id: string
   name: string
   kind: 'preset' | 'clone' | 'design'
+  provider?: string
+  providerSettings?: {
+    apiKeyEnv?: string
+    baseURLOverride?: string
+    keyType?: string
+  }
   description?: string
   tags?: string[]
   presetVoiceId?: string

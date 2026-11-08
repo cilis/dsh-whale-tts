@@ -38,13 +38,35 @@ export const MIMO_BASE_URLS = {
   'token-plan-team': 'https://token-plan-cn.xiaomimimo.com/v1',
 } as const
 
-/** Credential references the settings card offers for reuse. */
+/** Credential references the settings card offers for reuse, by provider. */
+export const PROVIDER_CREDENTIAL_REFS: Readonly<Record<string, readonly string[]>> = {
+  mimo: ['MIMO_API_KEY', 'XIAOMI_MIMO_API_KEY', 'XIAOMI_TOKEN_PLAN_CN_API_KEY'],
+  siliconflow: ['SILICONFLOW_API_KEY'],
+  minimax: ['MINIMAX_API_KEY'],
+  'openai-compatible': ['OPENAI_API_KEY'],
+  sapi: [],
+}
+
+/**
+ * Refs to offer for one provider. A configured custom ref is appended so a
+ * user who set `apiKeyEnv` manually can always select it again; empty means
+ * the provider's built-in refs only.
+ */
+export function credentialRefsFor(
+  provider: string,
+  configuredRef = '',
+): readonly string[] {
+  // Unknown/custom providers have no built-in table; keep the full list so a
+  // gateway that reuses MIMO/OPENAI refs can still select them.
+  const refs = [...(PROVIDER_CREDENTIAL_REFS[provider] ?? CANDIDATE_REFS)]
+  const custom = configuredRef.trim()
+  if (custom !== '' && !refs.includes(custom)) refs.push(custom)
+  return refs
+}
+
+/** All known refs, kept for callers that do not scope by provider. */
 export const CANDIDATE_REFS: readonly string[] = [
-  'MIMO_API_KEY',
-  'XIAOMI_MIMO_API_KEY',
-  'XIAOMI_TOKEN_PLAN_CN_API_KEY',
-  'OPENAI_API_KEY',
-  'MINIMAX_API_KEY',
+  ...new Set(Object.values(PROVIDER_CREDENTIAL_REFS).flat()),
 ]
 
 /**
@@ -189,9 +211,9 @@ export class KeyResolver {
   }
 
   /** Status of every candidate reference, without exposing values. */
-  async candidates(): Promise<readonly KeyInfo[]> {
+  async candidates(refs: readonly string[] = CANDIDATE_REFS): Promise<readonly KeyInfo[]> {
     const result: KeyInfo[] = []
-    for (const ref of CANDIDATE_REFS) {
+    for (const ref of refs) {
       result.push(await this.describe(ref))
     }
     return result

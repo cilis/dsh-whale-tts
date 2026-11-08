@@ -11,6 +11,7 @@
  * branches on `code` instead of on error classes.
  */
 import { TtsError, isTtsError, type KeyInfo } from '../types.js'
+import type { VoiceCatalog, VoiceProfile } from '../types.js'
 import type { ConfigSnapshot } from '../config.js'
 import type { ConnectionTestResult, TtsService } from '../core/service.js'
 import type { LoggerLike } from '../types.js'
@@ -167,6 +168,33 @@ export function optionalNumber(payload: unknown, field: string): number | undefi
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
+/**
+ * Infer an old profile's provider when it is unambiguous.
+ *
+ * - preset: exactly one provider publishes that voice id;
+ * - clone/design: exactly one provider advertises that capability.
+ *
+ * Anything ambiguous returns `undefined`; we never guess between providers.
+ */
+function inferProfileProvider(
+  profile: VoiceProfile,
+  catalog: VoiceCatalog,
+): string | undefined {
+  if (profile.kind === 'preset') {
+    const voiceId = profile.presetVoiceId?.trim()
+    if (voiceId === undefined || voiceId === '') return undefined
+    const matches = catalog.providers.filter((provider) =>
+      provider.capabilities.voices.some((voice) => voice.id === voiceId),
+    )
+    return matches.length === 1 ? matches[0]?.id : undefined
+  }
+  const capability = profile.kind === 'clone' ? 'voiceClone' : 'voiceDesign'
+  const matches = catalog.providers.filter(
+    (provider) => provider.capabilities[capability] === true,
+  )
+  return matches.length === 1 ? matches[0]?.id : undefined
+}
+
 /** Status payload the settings card reads on open. */
 export interface StatusPayload {
   readonly status: Awaited<ReturnType<TtsService['status']>>
@@ -272,6 +300,139 @@ export function createRpcHandler(
     'profiles/activate': async (payload) =>
       service.activateProfile(optionalString(payload, 'id') ?? null),
 
+    /**
+     * Activate a profile and, when it is bound to a provider, atomically switch
+     * the provider plus its saved (non-secret) routing settings. Old profiles
+     * without a provider are inferred only when exactly one provider matches;
+     * otherwise we keep the current provider and just move the activation
+     * pointer.
+     */
+    'profiles/use': async (payload) => {
+      const id = requireString(payload, 'id')
+      const profiles = await service.listProfiles()
+      const profile = profiles.find((entry) => entry.id === id)
+      if (profile === undefined) {
+        throw new TtsError('validation', `voice profile not found: ${id}`)
+      }
+      const catalog = await service.listVoices()
+      const boundProvider = profile.provider?.trim()
+      const inferredProvider =
+        boundProvider === undefined || boundProvider === ''
+          ? inferProfileProvider(profile, catalog)
+          : undefined
+      const providerId =
+        boundProvider !== undefined && boundProvider !== ''
+          ? boundProvider
+          : inferredProvider
+
+      // Persist an unambiguous inference once, so the profile shows its
+      // provider and later activations do not have to infer again.
+      const rememberInference = async (): Promise<void> => {
+        if (inferredProvider === undefined) return
+        await service.saveProfile({
+          id: profile.id,
+          name: profile.name,
+          kind: profile.kind,
+          provider: inferredProvider,
+          providerSettings: profile.providerSettings,
+          description: profile.description,
+          tags: profile.tags === undefined ? undefined : [...profile.tags],
+          presetVoiceId: profile.presetVoiceId,
+          sampleFile: profile.sampleFile,
+          sampleBytes: profile.sampleBytes,
+          sampleMime: profile.sampleMime,
+          designDescription: profile.designDescription,
+          designCandidates:
+            profile.designCandidates === undefined ? undefined : [...profile.designCandidates],
+          styleInstruction: profile.styleInstruction,
+        })
+      }
+
+      if (providerId === undefined) {
+        const activated = await service.activateProfile(id)
+        return { activeProfileId: activated.activeProfileId, provider: null, switched: false }
+      }
+
+      const status = await service.status()
+      const providerStatus = status.providers[providerId]
+      if (
+        providerStatus === undefined ||
+        providerStatus.available === false ||
+        providerStatus.selectable === false
+      ) {
+        throw new TtsError(
+          'config',
+          `profile "${profile.name}" is bound to provider "${providerId}", but that provider is not available or selectable`,
+        )
+      }
+      const catalogProvider = catalog.providers.find((entry) => entry.id === providerId)
+      if (profile.kind === 'clone' && catalogProvider?.capabilities.voiceClone !== true) {
+        throw new TtsError(
+          'config',
+          `provider "${providerId}" cannot synthesise this clone profile`,
+        )
+      }
+      if (profile.kind === 'design' && catalogProvider?.capabilities.voiceDesign !== true) {
+        throw new TtsError(
+          'config',
+          `provider "${providerId}" cannot edit this design profile`,
+        )
+      }
+
+      if (settings === undefined) {
+        if (service.snapshot().provider !== providerId) {
+          throw new TtsError(
+            'config',
+            'provider switching requires the settings service; activate the profile after configuring the provider manually',
+          )
+        }
+        const activated = await service.activateProfile(id)
+        await rememberInference()
+        return {
+          activeProfileId: activated.activeProfileId,
+          provider: providerId,
+          switched: false,
+        }
+      }
+
+      const state = await configState()
+      const providerSettings = profile.providerSettings ?? {}
+      const operations = [
+        { op: 'set' as const, path: ['provider'], value: providerId },
+        { op: 'set' as const, path: ['activeProfileId'], value: id },
+        {
+          op: 'set' as const,
+          path: ['presetVoiceId'],
+          value: profile.presetVoiceId ?? '',
+        },
+        { op: 'set' as const, path: ['customVoiceId'], value: '' },
+        {
+          op: 'set' as const,
+          path: ['apiKeyEnv'],
+          value: providerSettings.apiKeyEnv ?? '',
+        },
+        {
+          op: 'set' as const,
+          path: ['baseURLOverride'],
+          value: providerSettings.baseURLOverride ?? '',
+        },
+        {
+          op: 'set' as const,
+          path: ['keyType'],
+          value: providerSettings.keyType ?? 'auto',
+        },
+      ]
+      await settings.mutate(CONFIG_NAMESPACE, operations, state.revision)
+      const activated = await service.activateProfile(id)
+      await rememberInference()
+      return {
+        activeProfileId: activated.activeProfileId,
+        provider: providerId,
+        switched: state.config.provider !== providerId,
+        inferred: inferredProvider !== undefined,
+      }
+    },
+
     'profiles/duplicate': async (payload) =>
       service.duplicateProfile(
         requireString(payload, 'id'),
@@ -315,15 +476,32 @@ export function createRpcHandler(
       })
     },
 
-    'design/adopt': async (payload) =>
-      service.adoptCandidate(
+    'design/adopt': async (payload) => {
+      const record = payload as
+        | { provider?: unknown; providerSettings?: unknown }
+        | undefined
+      const binding =
+        typeof record?.provider === 'string' || record?.providerSettings !== undefined
+          ? {
+              provider:
+                typeof record?.provider === 'string' ? record.provider : undefined,
+              providerSettings:
+                record?.providerSettings !== null &&
+                typeof record?.providerSettings === 'object'
+                  ? (record.providerSettings as import('../types.js').VoiceProfileProviderSettings)
+                  : undefined,
+            }
+          : undefined
+      return service.adoptCandidate(
         requireString(payload, 'candidateId'),
         requireString(payload, 'name'),
         // Fall back to the configured design description: an older client (or a
         // card whose draft was reset) may not resend it, but the adopted profile
         // must still keep the design prompt as its style instruction.
         optionalString(payload, 'description') ?? service.snapshot().designDescription,
-      ),
+        binding,
+      )
+    },
 
     'design/discard': async (payload) => {
       const record = payload as { ids?: unknown } | undefined

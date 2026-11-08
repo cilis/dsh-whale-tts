@@ -12,6 +12,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   It auditions the currently selected preset or custom Voice ID with the current
   preview sentence, without saving a profile or changing the active voice.
   The host bypasses the active profile for this request only.
+- Credential references are scoped to the selected provider: MiMo offers its
+  three refs, SiliconFlow only `SILICONFLOW_API_KEY`, MiniMax only
+  `MINIMAX_API_KEY`; a manually configured custom ref is still appended.
+- Voice profiles now remember their provider and the non-secret provider
+  settings (`apiKeyEnv`, `baseURLOverride`, `keyType`). Activating a bound
+  profile switches the provider and applies those settings; old profiles are
+  inferred only when exactly one provider matches, otherwise shown as
+  `Unbound`. Partial updates (rename/style) preserve the binding.
 
 ### Fixed
 
