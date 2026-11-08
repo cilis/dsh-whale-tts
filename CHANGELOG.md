@@ -4,7 +4,14 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.1] - 2026-11-06
+## [0.5.1] - 2026-11-08
+
+### Added
+
+- The preset-voice editor has a **Preview** button next to the voice selector.
+  It auditions the currently selected preset or custom Voice ID with the current
+  preview sentence, without saving a profile or changing the active voice.
+  The host bypasses the active profile for this request only.
 
 ### Fixed
 

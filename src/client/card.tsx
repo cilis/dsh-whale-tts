@@ -504,6 +504,29 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     )
   }, [call, draft.previewText, playAudio, run, t])
 
+  /**
+   * Audition the voice currently selected in the preset editor, without
+   * saving a profile or changing the active voice. The host bypasses the
+   * active profile for this request (voice override), so the preview matches
+   * the dropdown rather than the previously activated profile.
+   */
+  const previewSelectedVoice = useCallback(async () => {
+    const voice =
+      draft.customVoiceId.trim() !== '' ? draft.customVoiceId.trim() : draft.presetVoiceId.trim()
+    if (voice === '') return
+    await run(
+      'preview-selected',
+      async () => {
+        const result = await call<PreviewPayload>('preview', {
+          text: draft.previewText,
+          voice,
+        })
+        await playAudio('preview', result.file)
+      },
+      t('previewReady'),
+    )
+  }, [call, draft.customVoiceId, draft.presetVoiceId, draft.previewText, playAudio, run, t])
+
   const activateProfile = useCallback(
     async (profile: Profile) => {
       await call('profiles/activate', { id: profile.id })
@@ -1037,6 +1060,17 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                 ))}
                 <option value="__custom__">{t('customVoiceId')}…</option>
               </select>
+              <button
+                type="button"
+                style={style.button}
+                disabled={
+                  busy !== null ||
+                  (draft.customVoiceId.trim() === '' && draft.presetVoiceId.trim() === '')
+                }
+                onClick={() => void previewSelectedVoice()}
+              >
+                {busy === 'preview-selected' ? t('previewing') : t('preview')}
+              </button>
               <input
                 style={{ ...style.input, minWidth: 180 }}
                 placeholder={t('customVoiceId')}

@@ -654,6 +654,25 @@ test('preview writes under <stateDir>/preview and readPreview reads it back', as
   )
 })
 
+test('preview with a voice override ignores the active profile', async (t) => {
+  const { service, adapterCalls } = await setup(t)
+  const active = await service.saveProfile({
+    name: 'active preset',
+    kind: 'preset',
+    presetVoiceId: 'p-active',
+  })
+  await service.activateProfile(active.id)
+
+  const preview = await service.preview({
+    text: '试听选中的预设',
+    voice: 'p-selected',
+    signal: idleSignal(),
+  })
+
+  assert.equal(preview.voice, 'p-selected')
+  assert.equal(adapterCalls.fake.at(-1).request.voice, 'p-selected')
+})
+
 /* -------------------------------------------------------------------------- */
 /* voice design                                                               */
 /* -------------------------------------------------------------------------- */

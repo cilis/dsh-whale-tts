@@ -337,7 +337,8 @@ export function createRpcHandler(
     // ------------------------------------------------------------- preview
     preview: async (payload, signal) => {
       const text = optionalString(payload, 'text')
-      return service.preview({ text, signal })
+      const voice = optionalString(payload, 'voice')
+      return service.preview({ text, voice, signal })
     },
 
     'audio/read': async (payload) => {

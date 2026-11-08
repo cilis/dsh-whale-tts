@@ -624,7 +624,7 @@ export class TtsService {
    * writing into the consumer's audio library.
    */
   async preview(
-    input: { text?: string; signal: AbortSignal },
+    input: { text?: string; voice?: string; signal: AbortSignal },
   ): Promise<PreviewResult> {
     const snap = this.snapshot()
     const text =
@@ -633,8 +633,15 @@ export class TtsService {
         : snap.previewText !== ''
           ? snap.previewText
           : '你好，我是这个声音。'
+    const voiceOverride = input.voice?.trim() ?? ''
     const startedAt = Date.now()
-    const prepared = await this.prepare({ text }, input.signal)
+    const prepared = await this.prepare(
+      { text, ...(voiceOverride === '' ? {} : { voice: voiceOverride }) },
+      input.signal,
+      // A per-selection audition must not be overridden by the currently
+      // active profile; the normal "current voice" preview still uses it.
+      voiceOverride === '' ? undefined : { ignoreVoice: true },
+    )
     const { result, provider } = await this.runPrepared(prepared, {
       fallback: prepared.resolvedVoice.sample === undefined ? undefined : [],
     })
