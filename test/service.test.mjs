@@ -940,6 +940,14 @@ test('credentialCandidates scopes refs to the selected provider', async (t) => {
   assert.deepEqual(minimax.map((row) => row.ref), ['MINIMAX_API_KEY'])
 })
 
+test('credentialCandidates hides a stale ref owned by another provider', async (t) => {
+  const { service } = await setup(t, {
+    config: { apiKeyEnv: 'XIAOMI_TOKEN_PLAN_CN_API_KEY' },
+  })
+  const rows = await service.credentialCandidates('siliconflow')
+  assert.deepEqual(rows.map((row) => row.ref), ['SILICONFLOW_API_KEY'])
+})
+
 test('voice profiles keep their provider binding through save and duplicate', async (t) => {
   const { service } = await setup(t)
   const profile = await service.saveProfile({

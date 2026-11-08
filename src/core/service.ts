@@ -1286,6 +1286,10 @@ export class TtsService {
       const input: VoiceImportProfile = {
         name: typeof profile.name === 'string' ? profile.name : '',
         kind,
+        provider: optionalStringValue(profile.provider),
+        providerSettings: isRecord(profile.providerSettings)
+          ? (profile.providerSettings as VoiceImportProfile['providerSettings'])
+          : undefined,
         description: optionalStringValue(profile.description),
         tags: Array.isArray(profile.tags)
           ? profile.tags.filter((tag): tag is string => typeof tag === 'string')

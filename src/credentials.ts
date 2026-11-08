@@ -60,7 +60,12 @@ export function credentialRefsFor(
   // gateway that reuses MIMO/OPENAI refs can still select them.
   const refs = [...(PROVIDER_CREDENTIAL_REFS[provider] ?? CANDIDATE_REFS)]
   const custom = configuredRef.trim()
-  if (custom !== '' && !refs.includes(custom)) refs.push(custom)
+  const belongsToAnotherProvider = Object.entries(PROVIDER_CREDENTIAL_REFS).some(
+    ([other, list]) => other !== provider && list.includes(custom),
+  )
+  if (custom !== '' && !belongsToAnotherProvider && !refs.includes(custom)) {
+    refs.push(custom)
+  }
   return refs
 }
 

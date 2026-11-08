@@ -397,6 +397,11 @@ export function createRpcHandler(
 
       const state = await configState()
       const providerSettings = profile.providerSettings ?? {}
+      const sameProvider = state.config.provider === providerId
+      // Old profiles predate providerSettings. If they already use this
+      // provider, keep the user's current key ref/BaseURL/key type instead of
+      // resetting them to provider defaults; when switching providers, reset
+      // to that provider's defaults.
       const operations = [
         { op: 'set' as const, path: ['provider'], value: providerId },
         { op: 'set' as const, path: ['activeProfileId'], value: id },
@@ -409,17 +414,19 @@ export function createRpcHandler(
         {
           op: 'set' as const,
           path: ['apiKeyEnv'],
-          value: providerSettings.apiKeyEnv ?? '',
+          value: providerSettings.apiKeyEnv ?? (sameProvider ? state.config.apiKeyEnv : ''),
         },
         {
           op: 'set' as const,
           path: ['baseURLOverride'],
-          value: providerSettings.baseURLOverride ?? '',
+          value:
+            providerSettings.baseURLOverride ??
+            (sameProvider ? state.config.baseURLOverride : ''),
         },
         {
           op: 'set' as const,
           path: ['keyType'],
-          value: providerSettings.keyType ?? 'auto',
+          value: providerSettings.keyType ?? (sameProvider ? state.config.keyType : 'auto'),
         },
       ]
       await settings.mutate(CONFIG_NAMESPACE, operations, state.revision)

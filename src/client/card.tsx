@@ -544,10 +544,16 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
     async (profile: Profile) => {
       // The host applies the profile's provider binding (if any), then moves
       // the activation pointer. It infers a provider only when unambiguous.
-      await call('profiles/use', { id: profile.id })
+      const result = await call<{
+        provider?: string | null
+        switched?: boolean
+      }>('profiles/use', { id: profile.id })
       await refresh()
+      if (result.switched === true && typeof result.provider === 'string') {
+        setNotice({ tone: 'info', text: t('profileSwitched', { provider: result.provider }) })
+      }
     },
-    [call, refresh],
+    [call, refresh, t],
   )
 
   const savePresetProfile = useCallback(async () => {
