@@ -6,6 +6,8 @@
 
 中文简介（默认）：[README.md](README.md) · 详细中文文档：[README.zh.md](README.zh.md)
 
+Output interface v1 (for bot authors): [docs/interface-v1.md](docs/interface-v1.md)
+
 Provider-agnostic text-to-speech tools for [DeepSeek Harness](https://github.com/deepseek-harness/deepseek-harness) agents.
 
 The plugin does **one** thing: turn text into a local audio file and return its

@@ -20,6 +20,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   profile switches the provider and applies those settings; old profiles are
   inferred only when exactly one provider matches, otherwise shown as
   `Unbound`. Partial updates (rename/style) preserve the binding.
+- `tts_status` now includes a `preflight` block: output directory exists/writable
+  and whether its path looks like `<qq-bridge>/audio`. `docs/interface-v1.md`
+  and the README output-interface section document the current contract for
+  other bot authors.
 
 ### Fixed
 

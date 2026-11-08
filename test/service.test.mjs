@@ -558,6 +558,9 @@ test('status reports provider, key, voice, output directory and cache stats', as
   assert.equal(status.activeProfileId, null)
   assert.equal(status.activeVoice, '苏打')
   assert.deepEqual({ ...status.cache }, { enabled: true, files: 0, bytes: 0 })
+  assert.equal(status.preflight?.exists, false)
+  assert.equal(status.preflight?.writable, true)
+  assert.equal(status.preflight?.looksLikeQqbotAudio, false)
 
   const row = status.providers.fake
   assert.ok(row, 'status is missing the fake provider row')

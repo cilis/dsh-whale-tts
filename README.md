@@ -32,6 +32,7 @@ dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.5.1.tgz
 
 - 详细中文说明：[README.zh.md](README.zh.md)
 - English documentation: [README.en.md](README.en.md)
+- **输出接口 v1（给其他机器人接入）**：[docs/interface-v1.md](docs/interface-v1.md)
 - Provider 与自托管：[docs/providers.md](docs/providers.md)、[docs/self-hosting.md](docs/self-hosting.md)
 - 其他 TTS API 调研（Qwen / 豆包 / MiniMax / OpenAI / Azure / ElevenLabs / SiliconFlow / Fish Audio）：[docs/tts-apis/](docs/tts-apis/)
 

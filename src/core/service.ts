@@ -5,9 +5,10 @@
  * voice-profile resolution, credential handling, provider fallback and output
  * writing behave identically everywhere.
  */
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { randomBytes } from 'node:crypto'
-import { readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
+import { constants as fsConstants } from 'node:fs'
+import { access, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import {
   TtsError,
@@ -868,6 +869,34 @@ export class TtsService {
       // Status must never throw because of an unreadable cache directory.
     }
     const active = await this.voices.active()
+    const resolvedOutput = resolve(outputDir)
+    const looksLikeQqbotAudio =
+      basename(resolvedOutput).toLowerCase() === 'audio' &&
+      basename(dirname(resolvedOutput)).toLowerCase() === 'qq-bridge'
+    let outputExists = false
+    let outputWritable = false
+    try {
+      const info = await stat(resolvedOutput)
+      outputExists = info.isDirectory()
+      if (outputExists) {
+        await access(resolvedOutput, fsConstants.W_OK)
+        outputWritable = true
+      }
+    } catch {
+      // Missing output.dir is normal before the first synthesis; check whether
+      // its parent can be written instead.
+      try {
+        await access(dirname(resolvedOutput), fsConstants.W_OK)
+        outputWritable = true
+      } catch {
+        outputWritable = false
+      }
+    }
+    const preflightWarning = !outputWritable
+      ? 'output.dir is not writable'
+      : !looksLikeQqbotAudio
+        ? 'output.dir does not look like <qq-bridge>/audio; qq_send_voice may reject relativePath'
+        : undefined
     return {
       provider: snap.provider,
       fallback: snap.fallback,
@@ -877,6 +906,12 @@ export class TtsService {
       cache: { enabled: snap.cache.enabled, files: cacheStats.files, bytes: cacheStats.bytes },
       outputDir,
       platform: this.platform,
+      preflight: {
+        exists: outputExists,
+        writable: outputWritable,
+        looksLikeQqbotAudio,
+        ...(preflightWarning === undefined ? {} : { warning: preflightWarning }),
+      },
     }
   }
 

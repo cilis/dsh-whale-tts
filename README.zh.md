@@ -231,6 +231,64 @@ providers:
 `keyType`、`available`、`model`、`voice`、`baseURL`、`lastError`，以及激活音色、
 缓存、输出目录、平台。**不含密钥、不含文本**，排障先跑它。
 
+返回里新增 `preflight`（可选）：
+
+```json
+{
+  "preflight": {
+    "exists": true,
+    "writable": true,
+    "looksLikeQqbotAudio": true
+  }
+}
+```
+
+`looksLikeQqbotAudio` 只表示路径形如 `<qq-bridge>/audio`，是给 QQBot 接入的提示，
+不是硬性校验；`warning` 会写清不可写或路径形态可疑的原因。
+
+## 输出接口（v1）
+
+本插件只生成音频文件并返回路径，不播放、不发送、不上传。其他机器人接入时只需要
+依赖下面这组字段，不要依赖设置卡内部 RPC。
+
+`tts_synthesize` 成功返回：
+
+```json
+{
+  "ok": true,
+  "path": "E:\\…\\audio\\tts-20261109-001122-a1b2c3.wav",
+  "relativePath": "tts-20261109-001122-a1b2c3.wav",
+  "file": "tts-20261109-001122-a1b2c3.wav",
+  "format": "wav",
+  "provider": "mimo",
+  "voice": "苏打",
+  "cached": false,
+  "bytes": 482133,
+  "elapsedMs": 1830
+}
+```
+
+路径语义：
+
+| 字段 | 用途 |
+| --- | --- |
+| `path` | 绝对路径；本机消费/调试 |
+| `relativePath` | 相对 `output.dir`，POSIX 分隔符；QQBot `qq_send_voice` 用这个 |
+| `file` | 纯文件名；日志/展示 |
+
+其他约定：
+
+- `format` 只有 `wav` / `mp3`；provider 不支持时回退到其支持格式；
+- 调用方拥有文件；插件不会因下一次合成删除旧文件；
+- QQBot 场景要把 `output.dir` 配到 `qq-bridge/audio`，否则 `relativePath` 会被
+  `qq_send_voice` 拒绝；
+- 失败按工具错误处理；设置卡 RPC 用稳定 `tts/...` code，不要按错误消息分支；
+- 当前**没有**公开 HTTP `/tts/v1/*` 接口；HTTP facade 在 P4，其他机器人现在通过
+  DSH agent 工具调用。
+
+完整字段表、`tts_list_voices` / `tts_status` 结构、错误码和接入 checklist：
+[docs/interface-v1.md](docs/interface-v1.md)。
+
 ## 设置卡
 
 client half 注册在 DSH **「插件」页**的 `dsh-whale-tts` 包下

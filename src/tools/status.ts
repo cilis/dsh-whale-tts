@@ -34,6 +34,17 @@ const STATUS_SCHEMA: JsonSchemaNode = {
     },
     outputDir: { type: 'string' },
     platform: { type: 'string' },
+    preflight: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        exists: { type: 'boolean' },
+        writable: { type: 'boolean' },
+        looksLikeQqbotAudio: { type: 'boolean' },
+        warning: { type: 'string' },
+      },
+      required: ['exists', 'writable', 'looksLikeQqbotAudio'],
+    },
   },
   required: [
     'provider',
@@ -76,6 +87,13 @@ export function createStatusTool(service: TtsService) {
               value.activeProfileId === null ? '' : ` (${value.activeProfileId})`
             }`,
             `output dir=${value.outputDir}`,
+            ...(value.preflight === undefined
+              ? []
+              : [
+                  `preflight: exists=${value.preflight.exists} writable=${value.preflight.writable} qqbotAudio=${value.preflight.looksLikeQqbotAudio}${
+                    value.preflight.warning === undefined ? '' : ` warning=${value.preflight.warning}`
+                  }`,
+                ]),
             `cache=${value.cache.enabled ? 'on' : 'off'} (${value.cache.files} files, ${value.cache.bytes} bytes)`,
             ...rows,
           ].join('\n'),
@@ -105,6 +123,18 @@ export function createStatusTool(service: TtsService) {
         },
         outputDir: status.outputDir,
         platform: status.platform,
+        ...(status.preflight === undefined
+          ? {}
+          : {
+              preflight: {
+                exists: status.preflight.exists,
+                writable: status.preflight.writable,
+                looksLikeQqbotAudio: status.preflight.looksLikeQqbotAudio,
+                ...(status.preflight.warning === undefined
+                  ? {}
+                  : { warning: status.preflight.warning }),
+              },
+            }),
       }
     },
   })

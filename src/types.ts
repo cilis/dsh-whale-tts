@@ -413,6 +413,13 @@ export interface TtsStatus {
   readonly cache: { readonly enabled: boolean; readonly files: number; readonly bytes: number }
   readonly outputDir: string
   readonly platform: NodeJS.Platform
+  /** Output-directory diagnostics for QQBot-style voice-library handoff. */
+  readonly preflight?: {
+    readonly exists: boolean
+    readonly writable: boolean
+    readonly looksLikeQqbotAudio: boolean
+    readonly warning?: string
+  }
 }
 
 /** Capability matrix row returned by `tts_list_voices`. */
