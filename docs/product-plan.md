@@ -347,16 +347,20 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 
 | 引擎 | 运行时 | 硬件 | 首期优先级 | 说明 |
 | --- | --- | --- | --- | --- |
-| Piper | ONNX / 可执行 | CPU | P1 | 轻量、快、离线，适合 Windows |
-| Kokoro | ONNX | CPU | P1 | 质量好，模型小 |
-| sherpa-onnx | ONNX | CPU | P1 | 多模型、多语言，工程成熟 |
+| Piper | ONNX/CLI | CPU | P2（外部可选） | GPL-3.0；不 bundle，优先用 sherpa 跑兼容模型 |
+| Kokoro | ONNX | CPU | P2 | Apache-2.0，质量好、模型小 |
+| sherpa-onnx | ONNX/CLI | CPU | P2 | Apache-2.0，多模型、多语言，CPU 底座 |
+| ZipVoice | ONNX/CLI | CPU | P2 | Apache-2.0，123M，中英文 CPU 克隆 |
 | SAPI | 系统 | Windows | 已有 | 当前离线回退 |
-| GPT-SoVITS | Python/HTTP | GPU（可选 CPU） | P2 | 克隆强，部署重 |
-| CosyVoice2 | Python/HTTP | GPU | P2 | 中文/克隆，依赖多 |
-| Fish Speech | Python/HTTP | GPU/CPU | P2 | 多语种、克隆 |
-| IndexTTS | Python/HTTP | GPU | P3 | 情感/克隆，实验性 |
+| Qwen3-TTS | Python/HTTP | GPU 6–12GB | P3 | Apache-2.0，0.6B/1.7B，克隆/设计/流式 |
+| GPT-SoVITS | Python/HTTP | GPU（可选 CPU） | P3 | MIT，中文 few-shot 克隆，部署重 |
+| CosyVoice3 | Python/HTTP | GPU | P3 | Apache-2.0，中文/方言/流式 |
+| VoxCPM2 | Python/HTTP | GPU ~8GB | P3 | Apache-2.0，多语种/克隆 |
+| Fish Speech | Python/HTTP | GPU | P3（默认关闭） | 社区/研究许可，非默认 |
+| IndexTTS2.5 | Python/HTTP | GPU | P3（许可确认后） | bilibili 自定义许可 |
 
-首期不要同时上四个 GPU 引擎；先把 **Piper + Kokoro + sherpa-onnx** 的本地框架跑通，再按需求接克隆引擎。
+首期不要同时上多个 GPU 引擎；先把 **sherpa-onnx + Kokoro/ZipVoice** 的 CPU 框架跑通，
+再按硬件接 **Qwen3-TTS 0.6B**，其他克隆引擎作为备选。
 
 ## 9. 本地 TTS 接入方案
 
@@ -431,6 +435,36 @@ RPC/HTTP facade 使用统一错误 envelope；DSH tool 仍按工具协议抛错�
 5. **测试**：用固定短句试听，显示 RTF、首句延迟、provider/engine 版本。
 6. **回退**：本地不可用时按 `local → cloud → SAPI` 顺序回退，并在 `tts_status` 标出原因。
 
+### 9.6 Qwen3-TTS 本地部署（P3）
+
+Qwen 有两条完全不同的路线，不能混：
+
+- DashScope `qwen3-tts-flash`：云 API，不能下载权重；
+- **Qwen3-TTS 开源权重（0.6B/1.7B）**：Apache-2.0，可本地部署，支持中文等 10 语言、
+  克隆、声音设计、流式。
+
+部署方式：
+
+| 方式 | 用途 | 注意 |
+| --- | --- | --- |
+| 官方 Python 包 + WebUI | 先验证音质/中文效果 | Python 3.10+、PyTorch、CUDA 12.x；模型从 HF/ModelScope 下载 |
+| vLLM-Omni | 生产/并发/OpenAI 兼容服务 | Linux/WSL2/Docker 更稳；Windows 原生 vLLM 支持弱 |
+| 自建 FastAPI | 接插件 sidecar | 暴露 `/synthesize` 或 `/v1/audio/speech`；插件只做进程/端口/健康检查 |
+
+硬件经验估算（非官方最低要求）：
+
+- 0.6B：bf16 权重约 1.2GB，加激活/解码/并发建议 **6–8GB VRAM** 起步；
+- 1.7B：权重约 3.4GB，建议 **12GB 左右** 更稳；
+- CPU 可跑 demo，但延迟不适合 QQBot 实时短句；CPU 档位用 ZipVoice/Kokoro。
+
+集成要求：
+
+- 优先让本地服务暴露 **OpenAI-compatible `/v1/audio/speech`**，复用现有 adapter；
+- 否则写薄 `QwenLocalAdapter`，不把 PyTorch import 进 DSH；
+- 模型包记录来源、sha256、许可证、参数量、显存要求；不打包进 npm；
+- 只绑 loopback，随机端口 + 短时 token；启动失败回退云端；
+- P3 验收：0.6B 在 8GB GPU 上完成一次中文合成 + 一次克隆合成，首句延迟和显存峰值有记录。
+
 ## 10. README/产品说明页规划
 
 README 不只写「怎么装」，要成为**接入规范**。建议结构：
@@ -465,7 +499,7 @@ README 必须有一节明确写：
 | P0 契约与文档 | 0.5.x | `docs/interface-v1.md`、README 接口章节、provider 矩阵、错误码、`tts_status` preflight（`output.dir` vs QQBot `audio/`） | 另一个机器人只看文档能写出调用代码；现有测试全过 |
 | P1 云端聚合 | 0.6.0 | provider SDK/registry 重构、Qwen/Doubao/OpenAI 可选、auto/fallback 路由、统一错误 | 新增 provider 不改 core；至少 6 家可用；契约测试 |
 | P2 本地 CPU | 0.7.0 | local runtime、Piper/Kokoro/sherpa、模型包管理、设置卡本地页、离线回退 | 断网可合成；模型安装/卸载/校验；Windows 真机 |
-| P3 本地克隆/GPU | 0.8.0 | GPT-SoVITS/CosyVoice/Fish sidecar、进程监督、GPU 探测、克隆档案跨引擎 | 至少一个克隆引擎端到端；资源/超时可控 |
+| P3 本地克隆/GPU | 0.8.0 | Qwen3-TTS 0.6B 首个端到端；GPT-SoVITS/CosyVoice3/VoxCPM2 sidecar；进程监督、GPU 探测、克隆档案跨引擎 | Qwen3-TTS 0.6B 在 8GB GPU 上完成合成/克隆；资源/超时可控 |
 | P4 对外 facade（可选） | 0.9.0 | loopback + token 的 HTTP `/tts/v1/*`（thin facade）、CLI、非 DSH 消费者示例 | 有真实外部消费者；契约一致；不替代 agent 通道 |
 
 估算（单人，熟悉代码后）：

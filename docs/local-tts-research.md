@@ -122,6 +122,35 @@
 - 缺点：GPU（CUDA/FlashAttention）门槛；1.7B 显存更高；安装依赖重；不是 CPU 方案。
 - 建议：**P3 质量首选**；先做 0.6B sidecar，1.7B 作为高质量档位。
 
+#### 3.7.1 本地部署方式
+
+| 方式 | 适合 | 注意 |
+| --- | --- | --- |
+| 官方 Python 包 + WebUI | 先验证音质/中文效果 | 按官方 README 装 Python 3.10+、PyTorch、CUDA 12.x；模型从 HuggingFace/ModelScope 下载 |
+| vLLM-Omni | 生产/并发/OpenAI 兼容服务 | Linux/WSL2/Docker 更稳；Windows 原生 vLLM 支持弱 |
+| 自己包 FastAPI | 接 `dsh-whale-tts` sidecar | 暴露 `/synthesize` 或 `/v1/audio/speech`；插件只做进程/端口/健康检查 |
+
+与插件集成：
+
+- 优先走 **OpenAI-compatible `/v1/audio/speech`**（vLLM-Omni 或自建 FastAPI），这样可以复用现有
+  `openai-compatible` adapter，少写一套协议。
+- 如果服务只提供自定义 JSON，则写一个薄 `QwenLocalAdapter`：请求 → 收 WAV/MP3/base64 → 返回
+  `{ data, format, voice }`，不把 PyTorch import 进 DSH。
+- 本地服务只绑 `127.0.0.1`，随机端口 + 短时 token；启动慢/显存不足时返回
+  `LOCAL_ENGINE_NOT_READY`，可回退云端。
+
+硬件经验估算（不是官方最低要求）：
+
+- 0.6B：bf16 权重约 1.2GB；加激活/解码/并发，建议 **6–8GB VRAM** 起步；
+- 1.7B：权重约 3.4GB，建议 **12GB 左右** 更稳；
+- CPU 可跑 demo，但延迟不适合 QQBot 实时短句；CPU 档位仍用 ZipVoice/Kokoro。
+
+模型与合规：
+
+- 权重不放进 npm 包/GitHub Release，按模型包下载并校验 sha256；
+- Apache-2.0 允许商用，但参考音频/克隆声音的授权由使用者负责；
+- 首次安装要用户确认下载体积和来源。
+
 ### 3.8 VoxCPM2
 
 - 官方：[OpenBMB/VoxCPM](https://github.com/OpenBMB/VoxCPM)
