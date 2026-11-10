@@ -74,6 +74,8 @@ export interface ProviderConfig {
   readonly enabled?: boolean
   /** Provider API root. Empty means "use the adapter default". */
   readonly baseURL?: string
+  /** Provider resource/model-version id (Doubao V3 `X-Api-Resource-Id`). */
+  readonly resourceId?: string
   /** Credential reference name. Empty means "the adapter default ref". */
   readonly apiKeyEnv?: string
   /** Provider model id. Empty means "the adapter default". */

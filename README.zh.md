@@ -125,6 +125,7 @@ powershell -ExecutionPolicy Bypass -File tools\install-whale-tts.ps1 -Rollback  
 | `sapi` | 本机 PowerShell `System.Speech`，断网可用 | 不需要 | wav | 否 |
 | `minimax` | `POST {baseURL}/t2a_v2`（Bearer，hex 音频） | 需要 | mp3、wav | 否 |
 | `qwen` | DashScope `qwen3-tts-flash`：POST → 下载 24h 音频 URL（Bearer） | 需要 | wav | 否 |
+| `doubao` | 豆包 V3 SSE：`POST {baseURL}/tts/unidirectional/sse`，base64 音频帧 | 需要 | mp3 | 否 |
 | `qwen-local` | 本地 Qwen3-TTS 服务：`POST {baseURL}/audio/speech`（OpenAI 兼容，raw 音频） | 可选 | wav、mp3 | 暂不支持 |
 
 回退链：

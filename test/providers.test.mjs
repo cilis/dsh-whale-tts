@@ -17,6 +17,7 @@ import { minimaxAdapter } from '../lib/providers/minimax.js'
 import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
 import { qwenLocalAdapter } from '../lib/providers/qwen-local.js'
 import { qwenAdapter } from '../lib/providers/qwen.js'
+import { doubaoAdapter } from '../lib/providers/doubao.js'
 import {
   BUILTIN_ADAPTERS,
   BUILTIN_PROVIDER_DEFAULTS,
@@ -171,9 +172,18 @@ async function expectTtsError(promise, expected) {
 // Registry alignment
 // ---------------------------------------------------------------------------
 
-test('registry: built-in adapters and defaults line up with the seven ids', () => {
-  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'qwen', 'qwen-local', 'sapi']
-  assert.equal(BUILTIN_ADAPTERS.size, 7)
+test('registry: built-in adapters and defaults line up with the eight ids', () => {
+  const ids = [
+    'openai-compatible',
+    'mimo',
+    'minimax',
+    'siliconflow',
+    'qwen',
+    'doubao',
+    'qwen-local',
+    'sapi',
+  ]
+  assert.equal(BUILTIN_ADAPTERS.size, 8)
   for (const id of ids) {
     assert.ok(BUILTIN_ADAPTERS.has(id), `missing adapter ${id}`)
     assert.ok(BUILTIN_PROVIDER_DEFAULTS[id], `missing defaults for ${id}`)
@@ -184,6 +194,7 @@ test('registry: built-in adapters and defaults line up with the seven ids', () =
   assert.equal(getAdapter('minimax'), minimaxAdapter)
   assert.equal(getAdapter('siliconflow'), siliconflowAdapter)
   assert.equal(getAdapter('qwen'), qwenAdapter)
+  assert.equal(getAdapter('doubao'), doubaoAdapter)
   assert.equal(getAdapter('qwen-local'), qwenLocalAdapter)
   assert.equal(getAdapter('sapi'), sapiAdapter)
 
@@ -1185,6 +1196,89 @@ test('qwen: an API error is a provider error, not a successful empty file', asyn
 })
 
 /* -------------------------------------------------------------------------- */
+/* doubao                                                                      */
+/* -------------------------------------------------------------------------- */
+
+const MP3_BYTES = Uint8Array.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00])
+
+test('doubao: parses V3 SSE audio chunks and sends the new-console headers', async () => {
+  const first = MP3_BYTES.slice(0, 4)
+  const second = MP3_BYTES.slice(4)
+  const body = [
+    `event: 352\ndata: ${JSON.stringify({ code: 0, data: Buffer.from(first).toString('base64') })}`,
+    `event: 352\ndata: ${JSON.stringify({ code: 0, data: Buffer.from(second).toString('base64') })}`,
+    'event: 152\ndata: {"code":20000000,"message":"OK","data":null}',
+    '',
+  ]
+    .join('\n\n')
+    .replace(/\n/g, '\r\n')
+  const { calls, fetchImpl } = makeFetch(
+    () =>
+      new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  const result = await doubaoAdapter.synthesize(
+    { text: '你好，豆包。', signal: idleSignal() },
+    {
+      enabled: true,
+      baseURL: 'https://openspeech.test/api/v3',
+      resourceId: 'seed-tts-2.0',
+      apiKeyEnv: 'DOUBAO_API_KEY',
+      voice: 'zh_female_vv_uranus_bigtts',
+      format: 'mp3',
+    },
+    runtime,
+  )
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://openspeech.test/api/v3/tts/unidirectional/sse')
+  assert.equal(calls[0].init.headers['X-Api-Key'], TEST_KEY)
+  assert.equal(calls[0].init.headers['X-Api-Resource-Id'], 'seed-tts-2.0')
+  assert.match(calls[0].init.headers['X-Api-Request-Id'], /^[0-9a-f-]{36}$/)
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    user: { uid: 'dsh-whale-tts' },
+    req_params: {
+      text: '你好，豆包。',
+      speaker: 'zh_female_vv_uranus_bigtts',
+      audio_params: { format: 'mp3', sample_rate: 24000 },
+    },
+  })
+  assert.equal(result.format, 'mp3')
+  assert.deepEqual([...result.data], [...MP3_BYTES])
+})
+
+test('doubao: a 45000000 SSE failure is an auth error', async () => {
+  const body =
+    'event: 153\ndata: {"code":45000000,"message":"speaker permission denied"}\n\n'
+  const { fetchImpl } = makeFetch(
+    () =>
+      new Response(body, {
+        status: 200,
+        headers: { 'content-type': 'text/event-stream' },
+      }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  await expectTtsError(
+    doubaoAdapter.synthesize(
+      { text: 'err', signal: idleSignal() },
+      {
+        enabled: true,
+        apiKeyEnv: 'DOUBAO_API_KEY',
+        resourceId: 'seed-tts-2.0',
+        voice: 'zh_female_vv_uranus_bigtts',
+      },
+      runtime,
+    ),
+    'auth',
+  )
+})
+
+/* -------------------------------------------------------------------------- */
 /* qwen-local                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -1251,11 +1345,12 @@ test('qwen-local: a configured ref adds a bearer token', async () => {
 /* selectable providers                                                       */
 /* -------------------------------------------------------------------------- */
 
-test('mimo, siliconflow, minimax, qwen and qwen-local are selectable as primary providers', () => {
+test('mimo, siliconflow, minimax, qwen, doubao and qwen-local are selectable as primary providers', () => {
   assert.equal(isProviderSelectable('mimo'), true)
   assert.equal(isProviderSelectable('siliconflow'), true)
   assert.equal(isProviderSelectable('minimax'), true)
   assert.equal(isProviderSelectable('qwen'), true)
+  assert.equal(isProviderSelectable('doubao'), true)
   assert.equal(isProviderSelectable('qwen-local'), true)
   assert.equal(isProviderSelectable('openai-compatible'), false)
   // SAPI stays usable as an internal fallback, but not as a primary choice.
@@ -1269,6 +1364,7 @@ test('DEFAULT_PROVIDERS enables implemented providers and keeps the rest off', (
   assert.equal(DEFAULT_PROVIDERS['siliconflow'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['qwen'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['doubao'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['qwen-local'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['openai-compatible'].enabled, false)
   assert.equal(DEFAULT_PROVIDERS['sapi'].enabled, true)

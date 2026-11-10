@@ -167,6 +167,9 @@ wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime?model=qwen3-tts-flash-realt
 
 ## 8. 接入 dsh-whale-tts 的建议
 
+> 实现状态：`qwen` provider 已实现（POST → 下载 WAV）；实时 WebSocket、声音复刻
+> 尚未接入。以下保留设计与字段说明。
+
 - provider id：`qwen`（或兼容旧命名 `qwen-tts`）；Key 引用：`DASHSCOPE_API_KEY`。
 - `synthesize()`：POST 上述 URL → 校验 `status_code` → 取 `output.audio.url` →
   `fetch` 下载 → 返回 `{ data, format: 'wav', voice: input.voice }`。

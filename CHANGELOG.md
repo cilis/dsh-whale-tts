@@ -33,6 +33,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   the JSON request, downloads the returned 24-hour WAV URL, and returns raw
   bytes; `DASHSCOPE_API_KEY` is the default credential ref. Rate/clone APIs
   remain out of scope for this adapter.
+- New `doubao` provider for the Volcengine Doubao V3 SSE endpoint. It sends the
+  new-console `X-Api-Key` / `X-Api-Resource-Id` headers, parses `352` audio
+  frames, and treats `152` / code `20000000` as success. Output is MP3; V1 is
+  not used because it cannot call 2.0 voices.
 
 ### Fixed
 

@@ -250,6 +250,9 @@ POST https://openspeech.bytedance.com/api/v1/tts
 
 ## 4. 接入 dsh-whale-tts 的建议
 
+> 实现状态：`doubao` provider 已实现 V3 SSE（`352` 音频帧 + `152` 完成）；
+> V1、chunked、WebSocket 和 ICL 复刻未接入。
+
 - provider id：`doubao`。
 - Key 引用：
   - 新版：`DOUBAO_API_KEY`（`X-Api-Key`）；

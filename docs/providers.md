@@ -177,6 +177,32 @@ Response: `{ data: { audio: "<hex>" }, extra_info: ..., base_resp: { status_code
 `base_resp.status_code !== 0` is a provider failure; `data.audio` is hex, not
 base64. Only the non-streaming path is implemented in this release.
 
+## doubao
+
+Volcengine Doubao V3 SSE (the V1 `/api/v1/tts` endpoint is not used because it
+cannot call 2.0 voices):
+
+```
+POST {baseURL}/tts/unidirectional/sse
+X-Api-Key: <DOUBAO_API_KEY>
+X-Api-Resource-Id: seed-tts-2.0
+Content-Type: application/json
+
+{
+  "user": { "uid": "dsh-whale-tts" },
+  "req_params": {
+    "text": "<text>",
+    "speaker": "zh_female_vv_uranus_bigtts",
+    "audio_params": { "format": "mp3", "sample_rate": 24000 }
+  }
+}
+```
+
+The adapter reads `event: 352` frames, base64-decodes and concatenates their
+audio, and treats `event: 152` / code `20000000` as success. `event: 153` or a
+non-zero code is a failure. `resourceId` is configurable for `seed-tts-1.0` or
+ICL resources; 2.0 voices require `seed-tts-2.0`. Output is always MP3.
+
 ## qwen
 
 Hosted DashScope (`qwen3-tts-flash`):

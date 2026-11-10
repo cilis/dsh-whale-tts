@@ -510,8 +510,8 @@ README 必须有一节明确写：
 | P3 本地克隆/GPU | 0.8.0 | Qwen3-TTS 0.6B 首个端到端；GPT-SoVITS/CosyVoice3/VoxCPM2 sidecar；进程监督、GPU 探测、克隆档案跨引擎 | Qwen3-TTS 0.6B 在 8GB GPU 上完成合成/克隆；资源/超时可控 |
 | P4 对外 facade（可选） | 0.9.0 | loopback + token 的 HTTP `/tts/v1/*`（thin facade）、CLI、非 DSH 消费者示例 | 有真实外部消费者；契约一致；不替代 agent 通道 |
 
-当前 P1 进度（0.5.x 本地未发布版）：`qwen` 云 adapter 已完成并通过单元测试；
-豆包 V3 adapter 和 registry 收口仍待做。
+当前 P1 进度（0.5.x 本地未发布版）：`qwen` 云 adapter 和 `doubao` V3 SSE adapter
+已完成并通过单元测试；OpenAI 可选、auto/fallback 路由审计和契约测试收口仍待做。
 
 估算（单人，熟悉代码后）：
 

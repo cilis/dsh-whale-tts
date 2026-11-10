@@ -10,6 +10,7 @@ import { minimaxAdapter } from './minimax.js'
 import { siliconflowAdapter } from './siliconflow.js'
 import { qwenLocalAdapter } from './qwen-local.js'
 import { qwenAdapter } from './qwen.js'
+import { doubaoAdapter } from './doubao.js'
 
 /**
  * Default provider blocks. Duplicated from `config.ts` defaults on purpose:
@@ -80,6 +81,18 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
     format: 'wav',
     timeoutMs: 60_000,
   },
+  doubao: {
+    enabled: true,
+    baseURL: 'https://openspeech.bytedance.com/api/v3',
+    resourceId: 'seed-tts-2.0',
+    apiKeyEnv: 'DOUBAO_API_KEY',
+    model: '',
+    designModel: '',
+    cloneModel: '',
+    voice: 'zh_female_vv_uranus_bigtts',
+    format: 'mp3',
+    timeoutMs: 120_000,
+  },
   sapi: {
     enabled: true,
     format: 'wav',
@@ -98,6 +111,7 @@ export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set([
   'siliconflow',
   'minimax',
   'qwen',
+  'doubao',
   'qwen-local',
 ])
 
@@ -123,6 +137,7 @@ export const BUILTIN_ADAPTERS: ReadonlyMap<string, ProviderAdapter> = new Map<
   [siliconflowAdapter.id, siliconflowAdapter],
   [qwenLocalAdapter.id, qwenLocalAdapter],
   [qwenAdapter.id, qwenAdapter],
+  [doubaoAdapter.id, doubaoAdapter],
   [sapiAdapter.id, sapiAdapter],
 ])
 
