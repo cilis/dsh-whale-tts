@@ -15,10 +15,10 @@ path. It never plays, sends, uploads or streams audio — what happens to the fi
 is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 - Three model-facing tools: `tts_synthesize`, `tts_list_voices`, `tts_status`.
-- Six providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS),
+- Seven providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS),
   `siliconflow` (SiliconFlow's OpenAI-compatible API), `sapi` (offline Windows
-  SAPI), `minimax` (`t2a_v2`, hex audio), and `qwen-local` (local Qwen3-TTS
-  sidecar over OpenAI-compatible `/audio/speech`).
+  SAPI), `minimax` (`t2a_v2`, hex audio), `qwen` (DashScope hosted TTS), and
+  `qwen-local` (local Qwen3-TTS sidecar over OpenAI-compatible `/audio/speech`).
 - Voice profiles: preset / cloned / designed voices, up to 50 profiles.
 - Backup / restore from the settings card: one self-contained `.json` export of
   profiles, samples and design candidates (no credential values), merged or

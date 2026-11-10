@@ -29,6 +29,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   credential ref is configured, defaults to `127.0.0.1:8000`, 0.6B model and
   WAV, and falls back through the normal chain when the local server is down.
   See `docs/qwen-local.md` for serving and configuration.
+- New `qwen` provider for the hosted DashScope `qwen3-tts-flash` API. It posts
+  the JSON request, downloads the returned 24-hour WAV URL, and returns raw
+  bytes; `DASHSCOPE_API_KEY` is the default credential ref. Rate/clone APIs
+  remain out of scope for this adapter.
 
 ### Fixed
 

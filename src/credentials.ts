@@ -44,6 +44,7 @@ export const PROVIDER_CREDENTIAL_REFS: Readonly<Record<string, readonly string[]
   siliconflow: ['SILICONFLOW_API_KEY'],
   minimax: ['MINIMAX_API_KEY'],
   'openai-compatible': ['OPENAI_API_KEY'],
+  qwen: ['DASHSCOPE_API_KEY'],
   'qwen-local': [],
   sapi: [],
 }

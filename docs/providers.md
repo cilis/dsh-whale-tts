@@ -177,6 +177,26 @@ Response: `{ data: { audio: "<hex>" }, extra_info: ..., base_resp: { status_code
 `base_resp.status_code !== 0` is a provider failure; `data.audio` is hex, not
 base64. Only the non-streaming path is implemented in this release.
 
+## qwen
+
+Hosted DashScope (`qwen3-tts-flash`):
+
+```
+POST {baseURL}/services/aigc/multimodal-generation/generation
+Authorization: Bearer <DASHSCOPE_API_KEY>
+Content-Type: application/json
+
+{
+  "model": "qwen3-tts-flash",
+  "input": { "text": "<text>", "voice": "Cherry" }
+}
+```
+
+Response contains `output.audio.url` (24-hour URL); the adapter downloads it and
+returns raw WAV. It does not stream and does not support voice enrollment/clone.
+For the open-weight local model, use `qwen-local` instead. Qwen cloud always
+returns WAV; a requested MP3 is ignored for this provider.
+
 ## qwen-local
 
 ```

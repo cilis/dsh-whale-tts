@@ -16,6 +16,7 @@ import { sapiAdapter, buildSapiInvocation } from '../lib/providers/sapi.js'
 import { minimaxAdapter } from '../lib/providers/minimax.js'
 import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
 import { qwenLocalAdapter } from '../lib/providers/qwen-local.js'
+import { qwenAdapter } from '../lib/providers/qwen.js'
 import {
   BUILTIN_ADAPTERS,
   BUILTIN_PROVIDER_DEFAULTS,
@@ -170,9 +171,9 @@ async function expectTtsError(promise, expected) {
 // Registry alignment
 // ---------------------------------------------------------------------------
 
-test('registry: built-in adapters and defaults line up with the six ids', () => {
-  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'qwen-local', 'sapi']
-  assert.equal(BUILTIN_ADAPTERS.size, 6)
+test('registry: built-in adapters and defaults line up with the seven ids', () => {
+  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'qwen', 'qwen-local', 'sapi']
+  assert.equal(BUILTIN_ADAPTERS.size, 7)
   for (const id of ids) {
     assert.ok(BUILTIN_ADAPTERS.has(id), `missing adapter ${id}`)
     assert.ok(BUILTIN_PROVIDER_DEFAULTS[id], `missing defaults for ${id}`)
@@ -182,6 +183,7 @@ test('registry: built-in adapters and defaults line up with the six ids', () => 
   assert.equal(getAdapter('mimo'), mimoAdapter)
   assert.equal(getAdapter('minimax'), minimaxAdapter)
   assert.equal(getAdapter('siliconflow'), siliconflowAdapter)
+  assert.equal(getAdapter('qwen'), qwenAdapter)
   assert.equal(getAdapter('qwen-local'), qwenLocalAdapter)
   assert.equal(getAdapter('sapi'), sapiAdapter)
 
@@ -1123,6 +1125,69 @@ test('siliconflow: errors are labelled siliconflow, not openai-compatible', asyn
   )
 })
 
+test('qwen: posts to DashScope, downloads the audio URL and returns WAV', async () => {
+  const { calls, fetchImpl } = makeFetch(({ index }) => {
+    if (index === 1) {
+      return jsonResponse({
+        status_code: 200,
+        request_id: 'req-qwen-1',
+        output: { audio: { url: 'https://audio.test/qwen.wav' } },
+      })
+    }
+    return audioResponse(wavBytes())
+  })
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  const result = await qwenAdapter.synthesize(
+    { text: '你好，云端 Qwen。', signal: idleSignal() },
+    {
+      enabled: true,
+      baseURL: 'https://dashscope.test/api/v1',
+      apiKeyEnv: 'DASHSCOPE_API_KEY',
+      model: 'qwen3-tts-flash',
+      voice: 'Cherry',
+      format: 'wav',
+    },
+    runtime,
+  )
+
+  assert.equal(calls.length, 2)
+  assert.equal(
+    calls[0].url,
+    'https://dashscope.test/api/v1/services/aigc/multimodal-generation/generation',
+  )
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TEST_KEY}`)
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    model: 'qwen3-tts-flash',
+    input: { text: '你好，云端 Qwen。', voice: 'Cherry' },
+  })
+  assert.equal(calls[1].url, 'https://audio.test/qwen.wav')
+  assert.equal(result.format, 'wav')
+  assert.equal(result.voice, 'Cherry')
+  assert.equal(result.meta.requestId, 'req-qwen-1')
+  assert.deepEqual([...result.data], [...wavBytes()])
+})
+
+test('qwen: an API error is a provider error, not a successful empty file', async () => {
+  const { fetchImpl } = makeFetch(() =>
+    jsonResponse({ status_code: 400, code: 'InvalidParameter', message: 'text too long' }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  await expectTtsError(
+    qwenAdapter.synthesize(
+      { text: 'bad', signal: idleSignal() },
+      { enabled: true, apiKeyEnv: 'DASHSCOPE_API_KEY', model: 'qwen3-tts-flash', voice: 'Cherry' },
+      runtime,
+    ),
+    'provider',
+  )
+})
+
+/* -------------------------------------------------------------------------- */
+/* qwen-local                                                                  */
+/* -------------------------------------------------------------------------- */
+
 test('qwen-local: posts an OpenAI-compatible request and does not require a key', async () => {
   const { calls, fetchImpl } = makeFetch(() => audioResponse(wavBytes()))
   const runtime = makeRuntime({
@@ -1186,10 +1251,11 @@ test('qwen-local: a configured ref adds a bearer token', async () => {
 /* selectable providers                                                       */
 /* -------------------------------------------------------------------------- */
 
-test('mimo, siliconflow, minimax and qwen-local are selectable as primary providers', () => {
+test('mimo, siliconflow, minimax, qwen and qwen-local are selectable as primary providers', () => {
   assert.equal(isProviderSelectable('mimo'), true)
   assert.equal(isProviderSelectable('siliconflow'), true)
   assert.equal(isProviderSelectable('minimax'), true)
+  assert.equal(isProviderSelectable('qwen'), true)
   assert.equal(isProviderSelectable('qwen-local'), true)
   assert.equal(isProviderSelectable('openai-compatible'), false)
   // SAPI stays usable as an internal fallback, but not as a primary choice.
@@ -1202,6 +1268,7 @@ test('DEFAULT_PROVIDERS enables implemented providers and keeps the rest off', (
   assert.equal(DEFAULT_PROVIDERS['mimo'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['siliconflow'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['qwen'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['qwen-local'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['openai-compatible'].enabled, false)
   assert.equal(DEFAULT_PROVIDERS['sapi'].enabled, true)

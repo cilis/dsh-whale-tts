@@ -9,6 +9,7 @@ import { sapiAdapter } from './sapi.js'
 import { minimaxAdapter } from './minimax.js'
 import { siliconflowAdapter } from './siliconflow.js'
 import { qwenLocalAdapter } from './qwen-local.js'
+import { qwenAdapter } from './qwen.js'
 
 /**
  * Default provider blocks. Duplicated from `config.ts` defaults on purpose:
@@ -68,6 +69,17 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
     format: 'wav',
     timeoutMs: 120_000,
   },
+  qwen: {
+    enabled: true,
+    baseURL: 'https://dashscope.aliyuncs.com/api/v1',
+    apiKeyEnv: 'DASHSCOPE_API_KEY',
+    model: 'qwen3-tts-flash',
+    designModel: '',
+    cloneModel: '',
+    voice: 'Cherry',
+    format: 'wav',
+    timeoutMs: 60_000,
+  },
   sapi: {
     enabled: true,
     format: 'wav',
@@ -85,6 +97,7 @@ export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set([
   'mimo',
   'siliconflow',
   'minimax',
+  'qwen',
   'qwen-local',
 ])
 
@@ -109,6 +122,7 @@ export const BUILTIN_ADAPTERS: ReadonlyMap<string, ProviderAdapter> = new Map<
   [minimaxAdapter.id, minimaxAdapter],
   [siliconflowAdapter.id, siliconflowAdapter],
   [qwenLocalAdapter.id, qwenLocalAdapter],
+  [qwenAdapter.id, qwenAdapter],
   [sapiAdapter.id, sapiAdapter],
 ])
 
