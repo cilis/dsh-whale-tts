@@ -15,6 +15,7 @@ import { test } from 'node:test'
 import { TtsService } from '../lib/core/service.js'
 import { minimaxAdapter } from '../lib/providers/minimax.js'
 import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
+import { qwenLocalAdapter } from '../lib/providers/qwen-local.js'
 
 const MP3 = Uint8Array.from([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
 const KEY = 'sk-loopback-test-key'
@@ -29,7 +30,12 @@ function config(provider, baseURL, voice) {
       [provider]: {
         enabled: true,
         baseURL,
-        apiKeyEnv: provider === 'siliconflow' ? 'SILICONFLOW_API_KEY' : 'MINIMAX_API_KEY',
+        apiKeyEnv:
+          provider === 'siliconflow'
+            ? 'SILICONFLOW_API_KEY'
+            : provider === 'qwen-local'
+              ? ''
+              : 'MINIMAX_API_KEY',
         model: provider === 'siliconflow' ? 'FunAudioLLM/CosyVoice2-0.5B' : 'speech-2.8-turbo',
         designModel: '',
         cloneModel: '',
@@ -99,7 +105,7 @@ async function makeService(t, provider, baseURL, voice, adapter) {
   return { service, home }
 }
 
-test('loopback: siliconflow and minimax work through real fetch', async (t) => {
+test('loopback: siliconflow, minimax and qwen-local work through real fetch', async (t) => {
   const requests = []
   const server = createServer((request, response) => {
     const chunks = []
@@ -155,11 +161,23 @@ test('loopback: siliconflow and minimax work through real fetch', async (t) => {
   assert.equal(mmOutcome.format, 'mp3')
   assert.deepEqual([...await readFile(mmOutcome.path)], [...MP3])
 
-  assert.equal(requests.length, 2)
+  const qw = await makeService(t, 'qwen-local', baseURL, 'Cherry', qwenLocalAdapter)
+  const qwOutcome = await qw.service.synthesize(
+    { text: 'qwen local loopback' },
+    new AbortController().signal,
+  )
+  assert.equal(qwOutcome.provider, 'qwen-local')
+  assert.equal(qwOutcome.format, 'mp3')
+  assert.deepEqual([...await readFile(qwOutcome.path)], [...MP3])
+
+  assert.equal(requests.length, 3)
   assert.equal(requests[0].url, '/v1/audio/speech')
   assert.equal(requests[0].headers.authorization, `Bearer ${KEY}`)
   assert.equal(JSON.parse(requests[0].body).input, 'siliconflow loopback')
   assert.equal(requests[1].url, '/v1/t2a_v2')
   assert.equal(requests[1].headers.authorization, `Bearer ${KEY}`)
   assert.equal(JSON.parse(requests[1].body).text, 'minimax loopback')
+  assert.equal(requests[2].url, '/v1/audio/speech')
+  assert.equal(requests[2].headers.authorization, undefined)
+  assert.equal(JSON.parse(requests[2].body).input, 'qwen local loopback')
 })

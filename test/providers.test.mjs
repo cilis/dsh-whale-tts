@@ -15,6 +15,7 @@ import { mimoAdapter } from '../lib/providers/mimo.js'
 import { sapiAdapter, buildSapiInvocation } from '../lib/providers/sapi.js'
 import { minimaxAdapter } from '../lib/providers/minimax.js'
 import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
+import { qwenLocalAdapter } from '../lib/providers/qwen-local.js'
 import {
   BUILTIN_ADAPTERS,
   BUILTIN_PROVIDER_DEFAULTS,
@@ -169,9 +170,9 @@ async function expectTtsError(promise, expected) {
 // Registry alignment
 // ---------------------------------------------------------------------------
 
-test('registry: built-in adapters and defaults line up with the five ids', () => {
-  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'sapi']
-  assert.equal(BUILTIN_ADAPTERS.size, 5)
+test('registry: built-in adapters and defaults line up with the six ids', () => {
+  const ids = ['openai-compatible', 'mimo', 'minimax', 'siliconflow', 'qwen-local', 'sapi']
+  assert.equal(BUILTIN_ADAPTERS.size, 6)
   for (const id of ids) {
     assert.ok(BUILTIN_ADAPTERS.has(id), `missing adapter ${id}`)
     assert.ok(BUILTIN_PROVIDER_DEFAULTS[id], `missing defaults for ${id}`)
@@ -181,6 +182,7 @@ test('registry: built-in adapters and defaults line up with the five ids', () =>
   assert.equal(getAdapter('mimo'), mimoAdapter)
   assert.equal(getAdapter('minimax'), minimaxAdapter)
   assert.equal(getAdapter('siliconflow'), siliconflowAdapter)
+  assert.equal(getAdapter('qwen-local'), qwenLocalAdapter)
   assert.equal(getAdapter('sapi'), sapiAdapter)
 
   // The merged provider config keeps adapter defaults for omitted keys.
@@ -1121,14 +1123,74 @@ test('siliconflow: errors are labelled siliconflow, not openai-compatible', asyn
   )
 })
 
+test('qwen-local: posts an OpenAI-compatible request and does not require a key', async () => {
+  const { calls, fetchImpl } = makeFetch(() => audioResponse(wavBytes()))
+  const runtime = makeRuntime({
+    fetch: fetchImpl,
+    resolveKey: async () => undefined,
+  })
+
+  const result = await qwenLocalAdapter.synthesize(
+    { text: '你好，本地 Qwen。', signal: idleSignal() },
+    {
+      enabled: true,
+      baseURL: 'http://127.0.0.1:8000/v1',
+      apiKeyEnv: '',
+      model: 'Qwen/Qwen3-TTS-12Hz-0.6B',
+      voice: 'Cherry',
+      format: 'wav',
+    },
+    runtime,
+  )
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'http://127.0.0.1:8000/v1/audio/speech')
+  assert.equal(calls[0].init.method, 'POST')
+  assert.equal(calls[0].init.headers.Authorization, undefined)
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    model: 'Qwen/Qwen3-TTS-12Hz-0.6B',
+    voice: 'Cherry',
+    input: '你好，本地 Qwen。',
+    response_format: 'wav',
+  })
+  assert.equal(result.format, 'wav')
+  assert.equal(result.voice, 'Cherry')
+  assert.deepEqual([...result.data], [...wavBytes()])
+})
+
+test('qwen-local: a configured ref adds a bearer token', async () => {
+  const { calls, fetchImpl } = makeFetch(() => audioResponse(wavBytes()))
+  const runtime = makeRuntime({
+    fetch: fetchImpl,
+    resolveKey: async () => TEST_KEY,
+  })
+
+  await qwenLocalAdapter.synthesize(
+    { text: '带 token 的本地服务', signal: idleSignal() },
+    {
+      enabled: true,
+      baseURL: 'http://127.0.0.1:8000/v1/',
+      apiKeyEnv: 'QWEN_LOCAL_API_KEY',
+      model: 'qwen3-tts',
+      voice: 'Cherry',
+      format: 'wav',
+    },
+    runtime,
+  )
+
+  assert.equal(calls[0].url, 'http://127.0.0.1:8000/v1/audio/speech')
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TEST_KEY}`)
+})
+
 /* -------------------------------------------------------------------------- */
 /* selectable providers                                                       */
 /* -------------------------------------------------------------------------- */
 
-test('mimo, siliconflow and minimax are selectable as primary providers', () => {
+test('mimo, siliconflow, minimax and qwen-local are selectable as primary providers', () => {
   assert.equal(isProviderSelectable('mimo'), true)
   assert.equal(isProviderSelectable('siliconflow'), true)
   assert.equal(isProviderSelectable('minimax'), true)
+  assert.equal(isProviderSelectable('qwen-local'), true)
   assert.equal(isProviderSelectable('openai-compatible'), false)
   // SAPI stays usable as an internal fallback, but not as a primary choice.
   assert.equal(isProviderSelectable('sapi'), false)
@@ -1140,6 +1202,7 @@ test('DEFAULT_PROVIDERS enables implemented providers and keeps the rest off', (
   assert.equal(DEFAULT_PROVIDERS['mimo'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['siliconflow'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['qwen-local'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['openai-compatible'].enabled, false)
   assert.equal(DEFAULT_PROVIDERS['sapi'].enabled, true)
 })

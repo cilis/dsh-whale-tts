@@ -24,6 +24,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   and whether its path looks like `<qq-bridge>/audio`. `docs/interface-v1.md`
   and the README output-interface section document the current contract for
   other bot authors.
+- New `qwen-local` provider for a local Qwen3-TTS sidecar. It calls an
+  OpenAI-compatible `POST /v1/audio/speech` endpoint, authenticates only when a
+  credential ref is configured, defaults to `127.0.0.1:8000`, 0.6B model and
+  WAV, and falls back through the normal chain when the local server is down.
+  See `docs/qwen-local.md` for serving and configuration.
 
 ### Fixed
 

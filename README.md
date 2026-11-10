@@ -18,7 +18,7 @@
 - **朗读**：DSH 助手每条最终回复的操作行有播放按钮，用当前音色朗读/暂停；设置卡可开「自动朗读新回复」（默认关，只读一轮最后一条正文）、跳过代码块、分段长度和语速。行内代码按词语读出，围栏代码块默认跳过。
 - **备份与恢复**：把档案、样本、候选导出成一个 JSON（不含密钥），导入支持合并或替换，导入前自动备份当前状态。
 - **密钥安全**：只保存 DSH 凭据的引用名，工具结果、日志和前端都不会出现密钥值；只允许清除本插件自己写入的凭据。
-- **多 provider**：MiMo、SiliconFlow、MiniMax 可选；MiMo 不可用时可以回退到 Windows 自带的离线 SAPI。
+- **多 provider**：MiMo、SiliconFlow、MiniMax、本地 Qwen3-TTS（`qwen-local`）可选；MiMo 不可用时可以回退到 Windows 自带的离线 SAPI。
 
 ## 快速开始
 
@@ -33,6 +33,7 @@ dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.5.1.tgz
 - 详细中文说明：[README.zh.md](README.zh.md)
 - English documentation: [README.en.md](README.en.md)
 - **输出接口 v1（给其他机器人接入）**：[docs/interface-v1.md](docs/interface-v1.md)
+- 本地 Qwen3-TTS 部署：[docs/qwen-local.md](docs/qwen-local.md)
 - Provider 与自托管：[docs/providers.md](docs/providers.md)、[docs/self-hosting.md](docs/self-hosting.md)
 - 其他 TTS API 调研（Qwen / 豆包 / MiniMax / OpenAI / Azure / ElevenLabs / SiliconFlow / Fish Audio）：[docs/tts-apis/](docs/tts-apis/)
 

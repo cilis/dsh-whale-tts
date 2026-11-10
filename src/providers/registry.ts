@@ -8,6 +8,7 @@ import { mimoAdapter } from './mimo.js'
 import { sapiAdapter } from './sapi.js'
 import { minimaxAdapter } from './minimax.js'
 import { siliconflowAdapter } from './siliconflow.js'
+import { qwenLocalAdapter } from './qwen-local.js'
 
 /**
  * Default provider blocks. Duplicated from `config.ts` defaults on purpose:
@@ -56,6 +57,17 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
     voice: 'FunAudioLLM/CosyVoice2-0.5B:alex',
     format: 'mp3',
   },
+  'qwen-local': {
+    enabled: true,
+    baseURL: 'http://127.0.0.1:8000/v1',
+    apiKeyEnv: '',
+    model: 'Qwen/Qwen3-TTS-12Hz-0.6B',
+    designModel: '',
+    cloneModel: '',
+    voice: 'Cherry',
+    format: 'wav',
+    timeoutMs: 120_000,
+  },
   sapi: {
     enabled: true,
     format: 'wav',
@@ -73,6 +85,7 @@ export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set([
   'mimo',
   'siliconflow',
   'minimax',
+  'qwen-local',
 ])
 
 /**
@@ -95,6 +108,7 @@ export const BUILTIN_ADAPTERS: ReadonlyMap<string, ProviderAdapter> = new Map<
   [mimoAdapter.id, mimoAdapter],
   [minimaxAdapter.id, minimaxAdapter],
   [siliconflowAdapter.id, siliconflowAdapter],
+  [qwenLocalAdapter.id, qwenLocalAdapter],
   [sapiAdapter.id, sapiAdapter],
 ])
 

@@ -177,6 +177,27 @@ Response: `{ data: { audio: "<hex>" }, extra_info: ..., base_resp: { status_code
 `base_resp.status_code !== 0` is a provider failure; `data.audio` is hex, not
 base64. Only the non-streaming path is implemented in this release.
 
+## qwen-local
+
+```
+POST {baseURL}/audio/speech
+Authorization: Bearer <key>   # optional
+Content-Type: application/json
+
+{
+  "model": "Qwen/Qwen3-TTS-12Hz-0.6B",
+  "voice": "Cherry",
+  "input": "<text>",
+  "response_format": "wav"
+}
+```
+
+For a Qwen3-TTS sidecar (vLLM-Omni or a custom FastAPI wrapper). The response is
+raw WAV/MP3 bytes. Unlike `openai-compatible`, the key is optional: a loopback
+sidecar commonly runs without auth. Set `providers.qwen-local.apiKeyEnv` only
+when the local gateway expects a token. The adapter does not start the sidecar;
+see [qwen-local.md](qwen-local.md).
+
 ## Writing another provider
 
 Adapters are looked up from `src/providers/registry.ts`. An adapter that is not

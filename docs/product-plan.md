@@ -465,6 +465,14 @@ Qwen 有两条完全不同的路线，不能混：
 - 只绑 loopback，随机端口 + 短时 token；启动失败回退云端；
 - P3 验收：0.6B 在 8GB GPU 上完成一次中文合成 + 一次克隆合成，首句延迟和显存峰值有记录。
 
+当前实现（0.5.x 本地未发布版）：
+
+- 已加 `qwen-local` provider：调用 OpenAI-compatible `/v1/audio/speech`，支持可选 token，
+  默认 `127.0.0.1:8000`、0.6B、WAV；
+- 已加 `docs/qwen-local.md` 和 README Provider 表；
+- **未做**：自动安装/启动/停止 sidecar、模型包下载与 sha256、GPU 探测、克隆/设计接口。
+  这些仍属于 P3 后续切片。
+
 ## 10. README/产品说明页规划
 
 README 不只写「怎么装」，要成为**接入规范**。建议结构：
