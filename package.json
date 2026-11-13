@@ -87,6 +87,9 @@
     "mimo",
     "minimax",
     "siliconflow",
+    "qwen",
+    "doubao",
+    "local-tts",
     "sapi"
   ],
   "repository": {
