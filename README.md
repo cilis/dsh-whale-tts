@@ -23,7 +23,7 @@
 ## 快速开始
 
 ```
-# npm 已发布 0.4.4
+# npm 已发布 0.5.1
 dsh plugin --profile <profile> add dsh-whale-tts
 # 或安装本地 tgz：
 dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.5.1.tgz

@@ -57,7 +57,7 @@ dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 
 ### From npm
 
-Published on npm (current `latest` is `0.4.4`):
+Published on npm (current `latest` is `0.5.1`):
 
 ```sh
 dsh plugin --profile <profile> add dsh-whale-tts

@@ -42,7 +42,7 @@ dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包�
 
 ### npm
 
-已发布到 npm（当前 latest 为 `0.4.4`）：
+已发布到 npm（当前 latest 为 `0.5.1`）：
 
 ```sh
 dsh plugin --profile <profile> add dsh-whale-tts
