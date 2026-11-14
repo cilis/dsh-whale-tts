@@ -11,6 +11,7 @@ import { siliconflowAdapter } from './siliconflow.js'
 import { qwenLocalAdapter } from './qwen-local.js'
 import { qwenAdapter } from './qwen.js'
 import { doubaoAdapter } from './doubao.js'
+import { deepseekAdapter } from './deepseek.js'
 
 /**
  * Default provider blocks. Duplicated from `config.ts` defaults on purpose:
@@ -93,6 +94,18 @@ export const BUILTIN_PROVIDER_DEFAULTS: Readonly<Record<string, ProviderConfig>>
     format: 'mp3',
     timeoutMs: 120_000,
   },
+  deepseek: {
+    enabled: true,
+    baseURL: 'https://api.deepseek.com',
+    apiKeyEnv: 'DEEPSEEK_API_KEY',
+    model: '',
+    designModel: '',
+    cloneModel: '',
+    voice: 'stella',
+    format: 'wav',
+    timeoutMs: 120_000,
+    filterMarkdown: true,
+  },
   sapi: {
     enabled: true,
     format: 'wav',
@@ -112,6 +125,7 @@ export const SELECTABLE_PROVIDERS: ReadonlySet<string> = new Set([
   'minimax',
   'qwen',
   'doubao',
+  'deepseek',
   'qwen-local',
 ])
 
@@ -138,6 +152,7 @@ export const BUILTIN_ADAPTERS: ReadonlyMap<string, ProviderAdapter> = new Map<
   [qwenLocalAdapter.id, qwenLocalAdapter],
   [qwenAdapter.id, qwenAdapter],
   [doubaoAdapter.id, doubaoAdapter],
+  [deepseekAdapter.id, deepseekAdapter],
   [sapiAdapter.id, sapiAdapter],
 ])
 

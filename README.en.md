@@ -15,11 +15,11 @@ path. It never plays, sends, uploads or streams audio — what happens to the fi
 is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 - Three model-facing tools: `tts_synthesize`, `tts_list_voices`, `tts_status`.
-- Eight providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS),
+- Nine providers: `openai-compatible`, `mimo` (Xiaomi MiMo V2.5 TTS),
   `siliconflow` (SiliconFlow's OpenAI-compatible API), `sapi` (offline Windows
   SAPI), `minimax` (`t2a_v2`, hex audio), `qwen` (DashScope hosted TTS),
-  `doubao` (Volcengine V3 SSE), and `qwen-local` (local Qwen3-TTS sidecar over
-  OpenAI-compatible `/audio/speech`).
+  `doubao` (Volcengine V3 SSE), `deepseek` (official DeepSeek TTS), and
+  `qwen-local` (local Qwen3-TTS sidecar over OpenAI-compatible `/audio/speech`).
 - Voice profiles: preset / cloned / designed voices, up to 50 profiles.
 - Backup / restore from the settings card: one self-contained `.json` export of
   profiles, samples and design candidates (no credential values), merged or
@@ -137,7 +137,7 @@ patch overrides it by id:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `provider` | `mimo` | provider id used by default (MiMo, SiliconFlow, MiniMax, Qwen, Doubao and local Qwen are selectable) |
+| `provider` | `mimo` | provider id used by default (MiMo, SiliconFlow, MiniMax, Qwen, Doubao, DeepSeek and local Qwen are selectable) |
 | `fallback` | `[sapi]` | providers tried in order after the primary fails |
 | `providers.<id>.enabled` | per provider | master switch |
 | `providers.<id>.baseURL` | per provider | API root |
@@ -151,6 +151,7 @@ patch overrides it by id:
 | `providers.<id>.timeoutMs` | `30000` | per-request timeout |
 | `providers.<id>.retry` | `1` | retries for retryable failures |
 | `providers.<id>.style` | `''` | default style instruction |
+| `providers.<id>.filterMarkdown` | `true` | strip Markdown before DeepSeek TTS |
 | `providers.<id>.headers` | `{}` | extra HTTP headers |
 | `providers.<id>.voiceName` | `''` | SAPI voice name |
 | `providers.<id>.scriptPath` | `''` | SAPI script override (templates allowed) |

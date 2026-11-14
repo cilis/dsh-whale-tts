@@ -18,6 +18,7 @@ import { siliconflowAdapter } from '../lib/providers/siliconflow.js'
 import { qwenLocalAdapter } from '../lib/providers/qwen-local.js'
 import { qwenAdapter } from '../lib/providers/qwen.js'
 import { doubaoAdapter } from '../lib/providers/doubao.js'
+import { deepseekAdapter } from '../lib/providers/deepseek.js'
 import {
   BUILTIN_ADAPTERS,
   BUILTIN_PROVIDER_DEFAULTS,
@@ -172,7 +173,7 @@ async function expectTtsError(promise, expected) {
 // Registry alignment
 // ---------------------------------------------------------------------------
 
-test('registry: built-in adapters and defaults line up with the eight ids', () => {
+test('registry: built-in adapters and defaults line up with the nine ids', () => {
   const ids = [
     'openai-compatible',
     'mimo',
@@ -180,10 +181,11 @@ test('registry: built-in adapters and defaults line up with the eight ids', () =
     'siliconflow',
     'qwen',
     'doubao',
+    'deepseek',
     'qwen-local',
     'sapi',
   ]
-  assert.equal(BUILTIN_ADAPTERS.size, 8)
+  assert.equal(BUILTIN_ADAPTERS.size, 9)
   for (const id of ids) {
     assert.ok(BUILTIN_ADAPTERS.has(id), `missing adapter ${id}`)
     assert.ok(BUILTIN_PROVIDER_DEFAULTS[id], `missing defaults for ${id}`)
@@ -195,6 +197,7 @@ test('registry: built-in adapters and defaults line up with the eight ids', () =
   assert.equal(getAdapter('siliconflow'), siliconflowAdapter)
   assert.equal(getAdapter('qwen'), qwenAdapter)
   assert.equal(getAdapter('doubao'), doubaoAdapter)
+  assert.equal(getAdapter('deepseek'), deepseekAdapter)
   assert.equal(getAdapter('qwen-local'), qwenLocalAdapter)
   assert.equal(getAdapter('sapi'), sapiAdapter)
 
@@ -1279,6 +1282,90 @@ test('doubao: a 45000000 SSE failure is an auth error', async () => {
 })
 
 /* -------------------------------------------------------------------------- */
+/* deepseek                                                                    */
+/* -------------------------------------------------------------------------- */
+
+test('deepseek: posts JSON and buffers a WAV response', async () => {
+  const { calls, fetchImpl } = makeFetch(() => audioResponse(wavBytes()))
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  const result = await deepseekAdapter.synthesize(
+    { text: '你好，DeepSeek。', signal: idleSignal() },
+    {
+      enabled: true,
+      baseURL: 'https://api.deepseek.com',
+      apiKeyEnv: 'DEEPSEEK_API_KEY',
+      voice: 'stella',
+      format: 'wav',
+    },
+    runtime,
+  )
+
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].url, 'https://api.deepseek.com/v1/tools/tts')
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TEST_KEY}`)
+  assert.deepEqual(JSON.parse(calls[0].init.body), {
+    text: '你好，DeepSeek。',
+    voice_id: 'stella',
+    format: 'wav',
+    filter_markdown: true,
+  })
+  assert.equal(result.format, 'wav')
+  assert.equal(result.voice, 'stella')
+  assert.deepEqual([...result.data], [...wavBytes()])
+})
+
+test('deepseek: 400 content-risk is a content-filter error', async () => {
+  const { fetchImpl } = makeFetch(
+    () => new Response('Content Exists Risk', { status: 400 }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  await expectTtsError(
+    deepseekAdapter.synthesize(
+      { text: 'bad', signal: idleSignal() },
+      { enabled: true, apiKeyEnv: 'DEEPSEEK_API_KEY', voice: 'stella' },
+      runtime,
+    ),
+    'content-filter',
+  )
+})
+
+test('deepseek: 503 is a retryable server error', async () => {
+  const { fetchImpl } = makeFetch(
+    () => new Response('busy', { status: 503 }),
+  )
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  await expectTtsError(
+    deepseekAdapter.synthesize(
+      { text: 'busy', signal: idleSignal() },
+      { enabled: true, apiKeyEnv: 'DEEPSEEK_API_KEY', voice: 'stella' },
+      runtime,
+    ),
+    'server',
+  )
+})
+
+test('deepseek: a WAV whose RIFF size exceeds the body is rejected', async () => {
+  const truncated = new Uint8Array(24)
+  truncated.set([0x52, 0x49, 0x46, 0x46], 0)
+  truncated.set([0x57, 0x41, 0x56, 0x45], 8)
+  new DataView(truncated.buffer).setUint32(4, 1000, true)
+  const { fetchImpl } = makeFetch(() => audioResponse(truncated))
+  const runtime = makeRuntime({ fetch: fetchImpl, resolveKey: async () => TEST_KEY })
+
+  await expectTtsError(
+    deepseekAdapter.synthesize(
+      { text: 'truncated', signal: idleSignal() },
+      { enabled: true, apiKeyEnv: 'DEEPSEEK_API_KEY', voice: 'stella' },
+      runtime,
+    ),
+    'provider',
+  )
+})
+
+/* -------------------------------------------------------------------------- */
 /* qwen-local                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -1345,12 +1432,13 @@ test('qwen-local: a configured ref adds a bearer token', async () => {
 /* selectable providers                                                       */
 /* -------------------------------------------------------------------------- */
 
-test('mimo, siliconflow, minimax, qwen, doubao and qwen-local are selectable as primary providers', () => {
+test('mimo, siliconflow, minimax, qwen, doubao, deepseek and qwen-local are selectable as primary providers', () => {
   assert.equal(isProviderSelectable('mimo'), true)
   assert.equal(isProviderSelectable('siliconflow'), true)
   assert.equal(isProviderSelectable('minimax'), true)
   assert.equal(isProviderSelectable('qwen'), true)
   assert.equal(isProviderSelectable('doubao'), true)
+  assert.equal(isProviderSelectable('deepseek'), true)
   assert.equal(isProviderSelectable('qwen-local'), true)
   assert.equal(isProviderSelectable('openai-compatible'), false)
   // SAPI stays usable as an internal fallback, but not as a primary choice.
@@ -1365,6 +1453,7 @@ test('DEFAULT_PROVIDERS enables implemented providers and keeps the rest off', (
   assert.equal(DEFAULT_PROVIDERS['minimax'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['qwen'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['doubao'].enabled, true)
+  assert.equal(DEFAULT_PROVIDERS['deepseek'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['qwen-local'].enabled, true)
   assert.equal(DEFAULT_PROVIDERS['openai-compatible'].enabled, false)
   assert.equal(DEFAULT_PROVIDERS['sapi'].enabled, true)

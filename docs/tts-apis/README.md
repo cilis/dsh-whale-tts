@@ -1,14 +1,14 @@
 # TTS API survey
 
 A survey of speech-synthesis APIs that could become `dsh-whale-tts` providers,
-compiled on **2026-11-03**, last re-checked **2026-11-09**. Each linked document is
+compiled on **2026-11-03**, last re-checked **2026-11-14**. Each linked document is
 self-contained: endpoint, authentication, request/response shape, limits, streaming
 support and notes for wiring it into this plugin.
 
 > Prices and quotas change; always confirm in the provider console. This folder
-> documents APIs, including ones not wired in yet. The plugin now ships MiMo,
-> SiliconFlow and MiniMax as selectable providers (OpenAI-compatible and SAPI
-> adapters exist but stay off the primary-provider list).
+> documents APIs, including ones not wired in yet. The plugin ships MiMo,
+> SiliconFlow, MiniMax, Qwen, Doubao, DeepSeek and the local `qwen-local` adapter
+> as selectable providers (OpenAI-compatible and SAPI stay off the primary list).
 
 ## At a glance
 
@@ -16,6 +16,7 @@ support and notes for wiring it into this plugin.
 | --- | --- | --- | --- | --- | --- | --- |
 | [Qwen TTS](qwen-tts.md) | `dashscope.aliyuncs.com/api/v1/.../multimodal-generation/generation` | `Authorization: Bearer` | audio URL (24 h) or SSE base64 chunks | SSE (`X-DashScope-SSE`) + WebSocket realtime | Voice enrollment model + realtime VC model | Medium: JSON API, URL download, 600 chars per request |
 | [Doubao TTS](doubao-tts.md) | V3 `openspeech.bytedance.com/api/v3/tts/unidirectional` (recommended) / V1 `api/v1/tts` (not recommended) | `X-Api-Key` + `X-Api-Resource-Id` (V3) or `Bearer;token` (V1) | V3 chunked/SSE base64; V1 base64 JSON | V3 chunked/SSE/WebSocket | ICL 1.0/2.0 with ICL resource IDs; V1 cannot use 2.0 voices | Medium: custom auth/resource IDs and base64 decode; strong Chinese voices |
+| [DeepSeek TTS](deepseek-tts.md) | `api.deepseek.com/v1/tools/tts` (HTTP) / `wss://api.deepseek.com/v1/tools/tts` | `Authorization: Bearer` | streamed WAV / PCM | WebSocket (PCM/Opus); HTTP is whole-text | No cloning; `stella`/`tide` presets | High: simple HTTP WAV; implemented as `deepseek` |
 | [MiniMax TTS](minimax-tts.md) | `api.minimax.io/v1/t2a_v2` | `Authorization: Bearer` | hex audio in JSON / SSE chunks | SSE | Voice clone API | High: implemented as non-streaming `minimax` adapter |
 | [OpenAI TTS](openai-tts.md) | `api.openai.com/v1/audio/speech` | `Authorization: Bearer` | binary audio / SSE events | SSE (`stream_format=sse`) | No cloning; voice presets + `instructions` | Already supported through `openai-compatible` |
 | [Azure Speech](azure-speech.md) | `{region}.tts.speech.microsoft.com/cognitiveservices/v1` | subscription key or 10-min bearer token | binary audio | SDK streaming; REST is one-shot | Custom Neural Voice (separate) | Medium: SSML body, not JSON |

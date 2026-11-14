@@ -223,6 +223,29 @@ returns raw WAV. It does not stream and does not support voice enrollment/clone.
 For the open-weight local model, use `qwen-local` instead. Qwen cloud always
 returns WAV; a requested MP3 is ignored for this provider.
 
+## deepseek
+
+Official DeepSeek TTS, whole-text HTTP endpoint:
+
+```
+POST {baseURL}/v1/tools/tts
+Authorization: Bearer <DEEPSEEK_API_KEY>
+Content-Type: application/json
+
+{
+  "text": "<text>",
+  "voice_id": "stella",
+  "format": "wav",
+  "filter_markdown": true
+}
+```
+
+The response is streamed raw WAV (`audio/wav`); the adapter buffers it into one
+file. Voices: `stella` (default), `tide`. The API supports `pcm` and a
+WebSocket endpoint too, but this adapter only implements HTTP WAV. A response
+that ends before its declared length/RIFF size is treated as a failure. See
+[deepseek-tts.md](tts-apis/deepseek-tts.md) for limits and error codes.
+
 ## qwen-local
 
 ```

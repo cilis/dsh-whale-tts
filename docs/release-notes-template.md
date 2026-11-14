@@ -57,7 +57,7 @@ dsh-whale-tts X.Y.Z 发布：<一句中文主题>
 - `tts_status` 增加 `preflight`，检查输出目录和 QQBot 音频路径形态。
 
 ### 说明
-- 测试：152 pass / 0 fail。
+- 测试：156 pass / 0 fail。
 - 已知限制：Qwen/豆包云 adapter 只做协议测试，CI 没有真实云端 key；`qwen-local` 需要单独启动 sidecar。
 - 完整变更见 [CHANGELOG.md](../CHANGELOG.md)。
 ```

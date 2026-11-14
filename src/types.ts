@@ -94,6 +94,8 @@ export interface ProviderConfig {
   readonly retry?: number
   /** Default style instruction (providers that accept one). */
   readonly style?: string
+  /** Strip Markdown before synthesis (DeepSeek TTS `filter_markdown`). */
+  readonly filterMarkdown?: boolean
   /**
    * Ask a voice-design model to polish the demo text so it fits the designed
    * voice (`audio.optimize_text_preview` on MiMo). Only used by design calls;

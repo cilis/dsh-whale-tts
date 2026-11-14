@@ -4,6 +4,18 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-11-14
+
+### Added
+
+- New `deepseek` provider for the official DeepSeek TTS API. It posts
+  `POST /v1/tools/tts`, buffers the streamed WAV response, supports `stella`
+  and `tide`, and reuses `DEEPSEEK_API_KEY`. `filterMarkdown` maps to
+  `filter_markdown` (default true). Truncated bodies and WAVs whose RIFF size
+  exceeds the received bytes are rejected.
+- `docs/tts-apis/deepseek-tts.md` documents the HTTP and WebSocket APIs,
+  limits, billing, error mapping, and the implemented scope.
+
 ## [0.5.1] - 2026-11-14
 
 ### Added
