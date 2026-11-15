@@ -20,13 +20,40 @@
 - **密钥安全**：只保存 DSH 凭据的引用名，工具结果、日志和前端都不会出现密钥值；只允许清除本插件自己写入的凭据。
 - **多 provider**：MiMo、SiliconFlow、MiniMax、Qwen 云、豆包 V3、DeepSeek 官方 TTS、本地 Qwen3-TTS（`qwen-local`）可选；MiMo 不可用时可以回退到 Windows 自带的离线 SAPI。
 
+## DeepSeek 官方 TTS
+
+0.6.0 内置 `deepseek` provider，直接调用 DeepSeek 官方
+`POST https://api.deepseek.com/v1/tools/tts`：
+
+- 音色 `stella` / `tide`，输出 WAV；
+- 复用 `DEEPSEEK_API_KEY`，`filterMarkdown` 默认 `true`；
+- 10,000 计费字符、64 KiB 请求体、30 分钟音频；汉字按 2 字符计；
+- PCM 和 WebSocket 实时流式暂未接入。
+
+```yaml
+provider: deepseek
+providers:
+  deepseek:
+    enabled: true
+    apiKeyEnv: DEEPSEEK_API_KEY
+    voice: stella
+    format: wav
+    filterMarkdown: true
+```
+
+```text
+tts_synthesize(text="你好，我是育木的小鲸鱼。", provider="deepseek")
+```
+
+协议、错误码和实现边界：[docs/tts-apis/deepseek-tts.md](docs/tts-apis/deepseek-tts.md)。
+
 ## 快速开始
 
 ```
 # npm 已发布 0.5.1
 dsh plugin --profile <profile> add dsh-whale-tts
 # 或安装本地 tgz：
-dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.5.1.tgz
+dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.6.0.tgz
 # 或在 DSH 插件页安装 tgz / 本地目录，装完重启 DSH
 ```
 

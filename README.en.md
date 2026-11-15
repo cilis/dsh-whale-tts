@@ -28,6 +28,38 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 - API keys live in the DSH credential store; the plugin only keeps the
   reference name and never returns a secret value.
 
+## DeepSeek official TTS (0.6.0)
+
+0.6.0 adds **DeepSeek's official speech synthesis** as a built-in provider; no
+extra gateway is needed.
+
+- provider id: `deepseek`
+- endpoint: `POST https://api.deepseek.com/v1/tools/tts` (whole-text HTTP, streamed audio)
+- voices: `stella` (default female), `tide` (male)
+- output: WAV; PCM and WebSocket streaming are not wired yet
+- credential: `DEEPSEEK_API_KEY` (reuse the existing DSH credential)
+- config: `filterMarkdown` maps to `filter_markdown`, default `true`
+- limits: 10,000 billing characters, 64 KiB body, 30 minutes of audio; Chinese counts as 2 characters; no speed control
+- failures: 400 content risk → `content-filter`; 429 → `rate-limit`; 503/504 → retryable; mid-stream truncation is a failure
+
+```yaml
+provider: deepseek
+providers:
+  deepseek:
+    enabled: true
+    apiKeyEnv: DEEPSEEK_API_KEY
+    voice: stella
+    format: wav
+    filterMarkdown: true
+```
+
+```text
+tts_synthesize(text="Hello from DeepSeek.", provider="deepseek")
+```
+
+See [docs/tts-apis/deepseek-tts.md](docs/tts-apis/deepseek-tts.md) for the full
+HTTP/WebSocket contract, errors, billing, and implemented scope.
+
 ## Requirements
 
 | Requirement | Notes |
@@ -47,7 +79,7 @@ is up to the consumer (a chat bridge, a video pipeline, a player, …).
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.5.1.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.6.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 

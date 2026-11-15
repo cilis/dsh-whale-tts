@@ -11,10 +11,43 @@
 插件只做一件事：**把文本变成本地音频文件并返回路径**。它不播放、不发送、不上传音频——文件怎么用由消费方决定（QQ 桥接、视频流水线、播放器……）。
 
 - 三个模型可见工具：`tts_synthesize`、`tts_list_voices`、`tts_status`
-- 五个 provider：`openai-compatible`、`mimo`（小米 MiMo V2.5 TTS）、`siliconflow`（硅基流动 OpenAI 兼容接口）、`sapi`（Windows 离线 SAPI）、`minimax`（`t2a_v2`，hex 音频）
+- 九个 provider：`openai-compatible`、`mimo`、`siliconflow`、`sapi`、`minimax`、`qwen`、`doubao`、`deepseek`、`qwen-local`
 - 音色档案：预置 / 克隆 / 设计三类，最多 50 套
 - 设置卡（中英双语，位于 DSH「插件」页）
 - 密钥存 DSH 凭据库，插件只保存引用名，任何返回值都不含明文
+
+## DeepSeek 官方 TTS（0.6.0）
+
+0.6.0 把 **DeepSeek 官方语音合成**直接接成内置 provider，不需要额外网关。
+
+- provider id：`deepseek`
+- 接口：`POST https://api.deepseek.com/v1/tools/tts`，整段 HTTP、流式返回音频
+- 音色：`stella`（默认女声）、`tide`（男声）
+- 输出：WAV；PCM 和 WebSocket 实时流式暂未接入
+- 凭据：`DEEPSEEK_API_KEY`（DSH 凭据库已有可直接复用）
+- 配置：`filterMarkdown` 映射 `filter_markdown`，默认 `true`
+- 限制：单次 10,000 计费字符、请求体 64 KiB、音频最长 30 分钟；汉字按 2 字符计费，不支持语速调节
+- 失败：400 内容风险 → `content-filter`；429 → `rate-limit`；503/504 → 可重试；中途断流/截断 → 失败，不会落半截文件
+
+```yaml
+provider: deepseek
+providers:
+  deepseek:
+    enabled: true
+    apiKeyEnv: DEEPSEEK_API_KEY
+    voice: stella
+    format: wav
+    filterMarkdown: true
+```
+
+调用：
+
+```text
+tts_synthesize(text="你好，我是育木的小鲸鱼。", provider="deepseek")
+```
+
+完整的 HTTP/WebSocket 协议、错误码、计费和实现边界见
+[docs/tts-apis/deepseek-tts.md](docs/tts-apis/deepseek-tts.md)。
 
 ## 运行要求
 
@@ -33,7 +66,7 @@
 
 ```sh
 npm pack
-dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.5.1.tgz
+dsh plugin --profile <profile> add file:/绝对路径/dsh-whale-tts-0.6.0.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # 应出现本包层
 ```
 
