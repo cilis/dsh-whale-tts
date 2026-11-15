@@ -1114,7 +1114,11 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
 
         {payload?.config.studioMode === 'design' ? (
           <div>
-            {canDesign ? null : <div style={style.muted}>{t('unsupportedDesign')}</div>}
+            {canDesign ? null : (
+              <div style={{ marginBottom: 12 }}>
+                <StatusBar tone="warning">{t('unsupportedDesign')}</StatusBar>
+              </div>
+            )}
             <textarea
               style={style.textarea}
               placeholder={t('designDescription')}
@@ -1192,12 +1196,16 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
 
         {payload?.config.studioMode === 'clone' ? (
           <div>
-            {canClone ? null : <div style={style.muted}>{t('unsupportedClone')}</div>}
+            {canClone ? null : (
+              <div style={{ marginBottom: 12 }}>
+                <StatusBar tone="warning">{t('unsupportedClone')}</StatusBar>
+              </div>
+            )}
             <div style={style.row}>
               <span style={style.label}>{t('cloneSample')}</span>
               <FileDropzone
                 accept=".mp3,.wav,audio/mpeg,audio/wav"
-                disabled={busy !== null || !writable}
+                disabled={busy !== null || !writable || !canClone}
                 title={t('cloneChooseSample')}
                 hint={t('cloneChooseSampleHint')}
                 onFile={(file) => void uploadSample(file)}
@@ -1210,7 +1218,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
               <input
                 style={{ ...style.input, minWidth: 240 }}
                 value={draft.cloneSampleFile}
-                disabled={!writable}
+                disabled={!writable || !canClone}
                 onChange={(event) => setDraft((previous) => ({ ...previous, cloneSampleFile: event.target.value }))}
               />
               {cloneProfiles.length === 0 ? null : (
@@ -1230,7 +1238,7 @@ function TtsSettings({ t, rpc }: { t: Translate; rpc?: RpcClient }): ReactNode {
                   )}
                 </select>
               )}
-              <button type="button" style={style.button} disabled={busy !== null} onClick={() => void saveCloneProfile()}>
+              <button type="button" style={style.button} disabled={busy !== null || !canClone} onClick={() => void saveCloneProfile()}>
                 {t('saveProfile')}
               </button>
             </div>

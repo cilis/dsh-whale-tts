@@ -15,6 +15,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   exceeds the received bytes are rejected.
 - `docs/tts-apis/deepseek-tts.md` documents the HTTP and WebSocket APIs,
   limits, billing, error mapping, and the implemented scope.
+- Voice design/clone capability warnings are now a prominent warning banner; clone controls are disabled when the active provider cannot clone.
 
 ## [0.5.1] - 2026-11-14
 

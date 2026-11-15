@@ -573,6 +573,12 @@ export const CARD_CSS = `
   background: color-mix(in srgb, var(--wtts-success) 9%, transparent);
 }
 
+.wtts-status[data-tone='warning'] {
+  color: var(--wtts-warn);
+  border-color: color-mix(in srgb, var(--wtts-warn) 35%, transparent);
+  background: color-mix(in srgb, var(--wtts-warn) 10%, transparent);
+}
+
 .wtts-status[data-tone='error'] {
   color: var(--wtts-error);
   border-color: color-mix(in srgb, var(--wtts-error) 32%, transparent);

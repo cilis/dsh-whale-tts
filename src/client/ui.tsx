@@ -44,7 +44,7 @@ export function StatusBar({
   tone,
   children,
 }: {
-  readonly tone: 'info' | 'success' | 'error'
+  readonly tone: 'info' | 'success' | 'warning' | 'error'
   readonly children: ReactNode
 }): ReactNode {
   return (

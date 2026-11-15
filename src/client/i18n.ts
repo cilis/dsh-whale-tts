@@ -66,8 +66,8 @@ export const en: Dictionary = {
   samplePath: 'Existing sample file name',
   upload: 'Upload',
   uploading: 'Uploading…',
-  unsupportedDesign: 'This provider does not support voice design.',
-  unsupportedClone: 'This provider does not support voice cloning.',
+  unsupportedDesign: 'Voice design is unavailable for this provider. Switch to a provider with voice design support.',
+  unsupportedClone: 'Voice cloning is unavailable for this provider. Switch to a provider with voice cloning support.',
   designAdopted: 'Voice adopted and activated.',
 
   sectionProfiles: 'Voice library',
@@ -250,8 +250,8 @@ export const zh: Dictionary = {
   samplePath: '已存样本文件名',
   upload: '上传',
   uploading: '上传中…',
-  unsupportedDesign: '当前 provider 不支持声音设计。',
-  unsupportedClone: '当前 provider 不支持音色克隆。',
+  unsupportedDesign: '当前 provider 不支持声音设计，请切换到支持声音设计的 provider。',
+  unsupportedClone: '当前 provider 不支持音色克隆，请切换到支持克隆的 provider 后再试。',
   designAdopted: '已设为当前音色。',
 
   sectionProfiles: '音色档案库',
