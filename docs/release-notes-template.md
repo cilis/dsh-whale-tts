@@ -5,12 +5,12 @@
 ## 标题
 
 ```text
-dsh-whale-tts X.Y.Z 发布：<一句中文主题>
+vX.Y.Z
 ```
 
-- 版本号与 `package.json`、git tag 一致；
-- tag 保持 ASCII：`vX.Y.Z`；
-- 主题只写这一版最重要的一件事，不堆 provider 列表。
+- 标题只写版本号，和 git tag 完全一致；
+- 不加“发布：…”描述、不堆 provider 列表；
+- tag 保持 ASCII：`vX.Y.Z`。
 
 ## 正文
 
@@ -44,7 +44,7 @@ dsh-whale-tts X.Y.Z 发布：<一句中文主题>
 ## 示例
 
 ```markdown
-## dsh-whale-tts 0.5.1
+## v0.5.1
 
 ### 新增
 - 新增 `qwen` provider：接入 DashScope `qwen3-tts-flash`，下载 24 小时 URL 并输出 WAV。
