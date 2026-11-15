@@ -50,7 +50,7 @@ tts_synthesize(text="你好，我是育木的小鲸鱼。", provider="deepseek")
 ## 快速开始
 
 ```
-# npm 已发布 0.5.1
+# npm 已发布 0.6.0
 dsh plugin --profile <profile> add dsh-whale-tts
 # 或安装本地 tgz：
 dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.6.0.tgz
