@@ -47,13 +47,25 @@ tts_synthesize(text="你好，我是育木的小鲸鱼。", provider="deepseek")
 
 协议、错误码和实现边界：[docs/tts-apis/deepseek-tts.md](docs/tts-apis/deepseek-tts.md)。
 
+## 跨 profile 同步
+
+0.6.1 起，desktop 和 qqbot 共用一份 provider / 音色选择：
+
+```text
+<DSH_HOME>/whale-tts/shared-control.json
+```
+
+只共享 provider、activeProfileId、presetVoiceId、customVoiceId；输出目录、maxChars、缓存、fallback、密钥仍各自保留。qqbot 每次合成重新读取，所以 desktop 切完后不需要重启 qqbot。
+
+不想共享时，在该 profile 的插件配置里设 `sharedControl.enabled: false`。
+
 ## 快速开始
 
 ```
 # npm 已发布 0.6.0
 dsh plugin --profile <profile> add dsh-whale-tts
 # 或安装本地 tgz：
-dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.6.0.tgz
+dsh plugin --profile <profile> add file:/路径/dsh-whale-tts-0.6.1.tgz
 # 或在 DSH 插件页安装 tgz / 本地目录，装完重启 DSH
 ```
 

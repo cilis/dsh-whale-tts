@@ -209,6 +209,9 @@ export interface StatusPayload {
 /** Endpoint handler map. */
 type EndpointHandler = (payload: unknown, signal: AbortSignal) => Promise<unknown>
 
+/** Config paths that define the cross-profile voice decision. */
+const SHARED_CONTROL_PATHS = new Set(['provider', 'activeProfileId', 'presetVoiceId', 'customVoiceId'])
+
 /**
  * Build the RPC handler the host registers on {@link REMOTE_CHANNEL}.
  *
@@ -280,6 +283,27 @@ export function createRpcHandler(
         throw new TtsError('validation', 'config/mutate requires a non-empty "operations" array')
       }
       await settings.mutate(CONFIG_NAMESPACE, operations, record?.expectedRevision)
+      const shared: {
+        provider?: string
+        activeProfileId?: string
+        presetVoiceId?: string
+        customVoiceId?: string
+      } = {}
+      let sharedTouched = false
+      for (const operation of operations) {
+        const path = operation.path[0] ?? ''
+        if (!SHARED_CONTROL_PATHS.has(path)) continue
+        sharedTouched = true
+        if (path === 'provider') {
+          if (operation.op === 'set' && typeof operation.value === 'string') shared.provider = operation.value
+          continue
+        }
+        const value = operation.op === 'set' && typeof operation.value === 'string' ? operation.value : ''
+        if (path === 'activeProfileId') shared.activeProfileId = value
+        if (path === 'presetVoiceId') shared.presetVoiceId = value
+        if (path === 'customVoiceId') shared.customVoiceId = value
+      }
+      if (sharedTouched) await service.publishSharedControl?.(shared)
       return { ok: true }
     },
 
@@ -295,10 +319,18 @@ export function createRpcHandler(
       return service.saveProfile(profile as unknown as import('../core/voices.js').VoiceProfileInput)
     },
 
-    'profiles/delete': async (payload) => service.deleteProfile(requireString(payload, 'id')),
+    'profiles/delete': async (payload) => {
+      const result = await service.deleteProfile(requireString(payload, 'id'))
+      const active = await service.voices.active()
+      await service.publishSharedControl?.({ activeProfileId: active?.id ?? null })
+      return result
+    },
 
-    'profiles/activate': async (payload) =>
-      service.activateProfile(optionalString(payload, 'id') ?? null),
+    'profiles/activate': async (payload) => {
+      const result = await service.activateProfile(optionalString(payload, 'id') ?? null)
+      await service.publishSharedControl?.({ activeProfileId: result.activeProfileId })
+      return result
+    },
 
     /**
      * Activate a profile and, when it is bound to a provider, atomically switch
@@ -350,6 +382,7 @@ export function createRpcHandler(
 
       if (providerId === undefined) {
         const activated = await service.activateProfile(id)
+        await service.publishSharedControl?.({ activeProfileId: activated.activeProfileId })
         return { activeProfileId: activated.activeProfileId, provider: null, switched: false }
       }
 
@@ -387,6 +420,7 @@ export function createRpcHandler(
           )
         }
         const activated = await service.activateProfile(id)
+        await service.publishSharedControl?.({ activeProfileId: activated.activeProfileId })
         await rememberInference()
         return {
           activeProfileId: activated.activeProfileId,
@@ -431,6 +465,12 @@ export function createRpcHandler(
       ]
       await settings.mutate(CONFIG_NAMESPACE, operations, state.revision)
       const activated = await service.activateProfile(id)
+      await service.publishSharedControl?.({
+        provider: providerId,
+        activeProfileId: activated.activeProfileId,
+        presetVoiceId: profile.presetVoiceId ?? '',
+        customVoiceId: '',
+      })
       await rememberInference()
       return {
         activeProfileId: activated.activeProfileId,

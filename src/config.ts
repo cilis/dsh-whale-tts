@@ -272,6 +272,11 @@ export interface Config {
     text: Volatile<boolean>
   }
 
+  /** Share provider + voice pointer across DSH profiles. */
+  sharedControl: {
+    enabled: Volatile<boolean>
+  }
+
   // ---- Settings-card state (all volatile) ----
 
   /** Active voice profile id; empty means "provider default voice". */
@@ -336,6 +341,11 @@ export const Config = z.object({
     text: volatileSchema(z.boolean().default(false)),
   }),
 
+  /** Share provider + voice pointer across DSH profiles (default on). */
+  sharedControl: z.object({
+    enabled: volatileSchema(z.boolean().default(true)),
+  }),
+
   activeProfileId: volatileSchema(z.string().default('')),
   studioMode: volatileSchema(
     z.union([z.const('preset'), z.const('design'), z.const('clone')]).default('preset'),
@@ -380,6 +390,7 @@ export interface ConfigSnapshot {
   limits: { maxChars: number }
   readAloud: { auto: boolean; skipCode: boolean; segmentChars: number; rate: number }
   log: { text: boolean }
+  sharedControl: { enabled: boolean }
   activeProfileId: string
   studioMode: StudioMode
   presetVoiceId: string
@@ -419,6 +430,7 @@ export function snapshot(config: Config): ConfigSnapshot {
       rate: plain(config.readAloud?.rate) ?? 1,
     },
     log: { text: plain(config.log.text) },
+    sharedControl: { enabled: plain(config.sharedControl?.enabled) ?? true },
     activeProfileId: plain(config.activeProfileId),
     studioMode: plain(config.studioMode),
     presetVoiceId: plain(config.presetVoiceId),

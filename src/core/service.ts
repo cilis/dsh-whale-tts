@@ -43,6 +43,7 @@ import {
   type CredentialBridge,
 } from '../credentials.js'
 import { VoiceStore, type VoiceImportProfile, type VoiceProfileInput } from './voices.js'
+import { readSharedControl, writeSharedControl } from './shared-control.js'
 import { OwnedKeyStore } from './owned-keys.js'
 import { SynthesisCache } from './cache.js'
 import { assertText, cacheKey, normalizeStyle } from './text.js'
@@ -289,9 +290,52 @@ export class TtsService {
     }
   }
 
-  /** Snapshot of the live configuration. */
+  /**
+   * Snapshot of the live configuration.
+   *
+   * `shared-control.json` is the cross-profile voice decision. Overlay it on
+   * every read so a settings-card switch in desktop reaches qqbot (and vice
+   * versa) without a restart. Local fields (output, limits, keys) are untouched.
+   */
   snapshot(): ConfigSnapshot {
-    return snapshot(this.options.config)
+    const local = snapshot(this.options.config)
+    if (!local.sharedControl.enabled) return local
+    const shared = readSharedControl(this.stateDir, this.logger)
+    if (shared === undefined) return local
+    return {
+      ...local,
+      ...(shared.provider === undefined ? {} : { provider: shared.provider }),
+      ...(shared.activeProfileId === undefined ? {} : { activeProfileId: shared.activeProfileId }),
+      ...(shared.presetVoiceId === undefined ? {} : { presetVoiceId: shared.presetVoiceId }),
+      ...(shared.customVoiceId === undefined ? {} : { customVoiceId: shared.customVoiceId }),
+    }
+  }
+
+  /**
+   * Publish the local provider + voice pointer to the shared document.
+   *
+   * Called after settings mutations and voice-profile activation. Pass an
+   * explicit `activeProfileId` when the pointer changed without a config write.
+   */
+  async publishSharedControl(
+    options: {
+      readonly provider?: string
+      readonly activeProfileId?: string | null
+      readonly presetVoiceId?: string
+      readonly customVoiceId?: string
+    } = {},
+  ): Promise<void> {
+    const local = snapshot(this.options.config)
+    if (!local.sharedControl.enabled) return
+    const activeProfileId = options.activeProfileId === undefined
+      ? local.activeProfileId
+      : (options.activeProfileId ?? '')
+    await writeSharedControl(this.stateDir, {
+      provider: (options.provider ?? local.provider).trim(),
+      activeProfileId,
+      presetVoiceId: options.presetVoiceId ?? local.presetVoiceId,
+      customVoiceId: options.customVoiceId ?? local.customVoiceId,
+    })
   }
 
   /** Called when the plugin unloads. */

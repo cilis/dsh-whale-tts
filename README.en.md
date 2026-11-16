@@ -60,6 +60,34 @@ tts_synthesize(text="Hello from DeepSeek.", provider="deepseek")
 See [docs/tts-apis/deepseek-tts.md](docs/tts-apis/deepseek-tts.md) for the full
 HTTP/WebSocket contract, errors, billing, and implemented scope.
 
+## Cross-profile sync (desktop / qqbot)
+
+Since 0.6.1, the provider and current voice are a single decision shared by
+both profiles.
+
+```text
+<DSH_HOME>/whale-tts/shared-control.json
+```
+
+Shared fields:
+
+- `provider`
+- `activeProfileId`
+- `presetVoiceId`
+- `customVoiceId`
+
+Output directories, `maxChars`, cache, fallback and credentials stay local to
+each profile. QQBot re-reads the shared file on every synthesis, so a desktop
+settings-card switch needs no qqbot restart; a qqbot switch reaches desktop the
+same way.
+
+To opt out for one profile:
+
+```yaml
+sharedControl:
+  enabled: false
+```
+
 ## Requirements
 
 | Requirement | Notes |
@@ -79,7 +107,7 @@ HTTP/WebSocket contract, errors, billing, and implemented scope.
 
 ```sh
 npm pack                                     # or: pnpm pack
-dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.6.0.tgz
+dsh plugin --profile <profile> add file:/abs/path/dsh-whale-tts-0.6.1.tgz
 dsh --profile <profile> --dump-config | grep dsh-whale-tts   # layer must appear
 ```
 

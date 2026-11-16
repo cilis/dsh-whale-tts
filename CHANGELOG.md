@@ -4,6 +4,17 @@ All notable changes to `dsh-whale-tts` are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-11-16
+
+### Added
+
+- Cross-profile voice control: desktop and qqbot share a tiny
+  `<DSH_HOME>/whale-tts/shared-control.json` document containing the provider
+  and voice pointer. Each plugin instance overlays it on every read, so a
+  provider/voice switch in the settings card takes effect in the other profile
+  without a restart. Output directories, limits, credentials and fallback stay
+  local. `sharedControl.enabled: false` restores profile-local behaviour.
+
 ## [0.6.0] - 2026-11-14
 
 ### Added
